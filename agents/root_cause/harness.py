@@ -37,9 +37,11 @@ _COMMON_MANIFEST = "agents/common/fixtures/manifest.json"
 _DEFAULT_COLLECTION = "arc_root_cause_smoke"
 
 # Evidence the fakes return — the two ingested common fixtures, so the mocked
-# runs cite the same real doc_ids the live corpus would surface.
+# runs cite the same real doc_ids the live corpus would surface. Canonical
+# S/V/O ids (validation/DATA_MANIFEST.md), mirroring agents/common/fixtures/
+# manifest.json: V2 = Eltek controller manual, UFC-3-540-07 = DC-plant safety.
 _FAKE_ELTEK = RetrievedRef(
-    doc_id="eltek-flatpack2-om-manual",
+    doc_id="V2",
     section="3.2 DC Undervoltage Alarm",
     snippet=(
         "The rectifier module raises a DC UNDERVOLTAGE alarm when the -48V plant "
@@ -50,7 +52,7 @@ _FAKE_ELTEK = RetrievedRef(
     score=None,
 )
 _FAKE_SAFETY = RetrievedRef(
-    doc_id="site-safety-dc-power-plant",
+    doc_id="UFC-3-540-07",
     section="2 Lockout/Tagout and PPE before servicing",
     snippet=(
         "Before any work on the -48V DC power plant, isolate the plant and apply "
