@@ -1,0 +1,23 @@
+# Secrets — repo is PUBLIC, zero tolerance
+.env
+.env.*
+!.env.example
+*.p8
+*.pem
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# Node
+node_modules/
+.next/
+
+# Xcode / Swift
+DerivedData/
+*.xcuserstate
+xcuserdata/
+
+# OS
+.DS_Store
