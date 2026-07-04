@@ -117,6 +117,13 @@ _PLAN_SCHEMA: dict[str, Any] = {
     "additionalProperties": False,
 }
 
+# Token budget for the planning call. The plan is a small JSON object; 800 gives
+# comfortable headroom so the model finishes cleanly (finish_reason=stop). The
+# structured_json re-prompt is a SAFETY NET, not a budget (contracts/decisions.md):
+# a finish_reason=length here would cost a whole extra LLM pass, so we size to
+# avoid it rather than lean on the retry.
+_PLAN_MAX_TOKENS = 800
+
 
 # --------------------------------------------------------------------------- #
 # Structured-topology view (loaded once from the JSON fixture)
@@ -177,7 +184,7 @@ class CorrelationAgent:
         prompt_path: str | Path | None = None,
         system_prompt: str | None = None,
         top_k: int = 4,
-        plan_max_tokens: int = 350,
+        plan_max_tokens: int = _PLAN_MAX_TOKENS,
     ) -> None:
         self._vultr = vultr
         self._retriever = retriever
