@@ -12,7 +12,7 @@ state machine (#15) maps its states onto these phases; the offline harness
          -> PHASE1  (correlation -> root_cause)
          -> awaiting_field_validation
          -> HUMAN_LOOP (validation: confirm | PIVOT back to PHASE1)
-         -> PHASE2  (remediation -> cost_inventory)
+         -> PHASE2  (remediation -> cost_inventory_dispatch)
          -> report_ready -> resolved
 """
 
@@ -30,7 +30,12 @@ class Phase(str, Enum):
 
 
 # Ordered agent names executed in each phase. Names are the ``Agent.name`` keys
-# used by the registry; the two agentic devs own disjoint lanes (ROADMAP split).
+# used by the registry and, once emitted, MUST match the frozen
+# ``events.schema.json`` agent enum. Wire name vs module path: the Cost/Inventory/
+# Dispatch agent's wire name is ``cost_inventory_dispatch`` (Agent.name + events
+# enum); its implementing module intentionally stays at ``agents/cost_inventory/``
+# -- module path != wire name, so do NOT rename that directory. The two agentic
+# devs own disjoint lanes (ROADMAP split).
 PHASE_PLAN: dict[Phase, tuple[str, ...]] = {
     Phase.PHASE1: ("correlation", "root_cause"),
     Phase.HUMAN_LOOP: ("validation",),

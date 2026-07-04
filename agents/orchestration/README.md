@@ -18,7 +18,7 @@ and plugs real agents into the same registry + plan.
 ```
 PHASE1     : correlation -> root_cause
 HUMAN_LOOP : validation            (confirm | PIVOT back to PHASE1)
-PHASE2     : remediation -> cost_inventory
+PHASE2     : remediation -> cost_inventory_dispatch
 ```
 
 ## Context threading contract

@@ -72,3 +72,69 @@ single re-prompt recovered it — the JSON safety net is proven in production.
 
 > Agents producing larger payloads should raise `max_tokens` past 100 to avoid
 > truncation; the re-prompt is a safety net, not a substitute for enough tokens.
+
+---
+
+## Canonical Citation + agent→event transform  [PROPOSED — approval @aminssutt (adapters) + @simerugby (events)]
+
+**Date:** 2026-07-04 · **Author:** @vgtray (dev-backend) · **Source:** audit stage-A P0-1 (#76), re-proven stage-B B-P0-2
+
+Two frozen Citation shapes coexist and BOTH stay as-is:
+- **Agent citation** (`contracts/agent_interface.py` `Citation`) = `{doc_id, section, snippet?}`.
+  This is what agents actually produce (root_cause / correlation / validation). **Unchanged.**
+- **Event citation** (`contracts/events.schema.json` `$defs/citation`) = `{doc_id, title, page, claim}`,
+  `claim` **required**. This is what events transport. **Unchanged.**
+
+The gap (`claim`/`page` have no live producer — the text retriever returns only
+`doc_id, section, snippet`) is closed by a **transform owned by the INT.1 adapters**
+(one per agent, modelled on the existing `backend/app/validation_adapter.py`), NOT by
+mutating either frozen contract. The transform, canonical:
+
+- **`claim`** = a one-sentence synthesis from the ranked cause + its snippet, formula:
+  `"<cause> — per <doc title/section>"`. (Deterministic string build in the adapter; no extra LLM call.)
+- **`page`** = `section → page` lookup in the corpus index; **fallback = the `section` string**
+  when the index has no page (text retriever today has no page — fallback always applies until
+  the visual retriever decision below lands).
+- **`title`** = document title from the corpus manifest keyed by `doc_id`.
+- **`doc_id`** passes through unchanged (canonical S/V/O namespace, see next entry).
+
+**Status:** PROPOSED. Needs @aminssutt (owns the adapters) + @simerugby (owns the event
+contract) to approve before INT.1 wiring. This is the P0 blocker for the live citation trail.
+
+---
+
+## VultronRetriever: text-now / visual-later + doc_id namespace + corpus builder  [PROPOSED — revisit post Vultr workshop]
+
+**Date:** 2026-07-04 · **Author:** @vgtray (dev-backend) · **Source:** audit stage-A P1-2/3/4 (#80)
+
+**Provisional decision — TEXT vector store for the demo.** `agents/common/retriever.py`
+(text vector store, `(doc_id, section)` citations) is the **proven path**: real smoke +
+143 tests green, ~200 ms. The demo ships on it.
+
+**VISUAL retriever = documented upgrade path, NOT built.** The visual late-interaction
+design in `validation/VULTRONRETRIEVER_BRIEF.md` (page images, ColQwen, MaxSim,
+page-level citations, "schematic lights up" beat) is deferred and **must be revalidated at
+the Vultr workshop** before any corpus work commits to it. Open workshop questions:
+- Is VultronRetriever served via **Serverless Inference** or self-hosted?
+- Is there a **batch / embedding endpoint** for page-image indexing?
+- Is **scoring server-side** (MaxSim / `score_multi_vector`) or client-side?
+- Indexing cost of 300–800 page-images as per-token vectors (the real $ risk, per stage-B B5)?
+
+If visual wins post-workshop, `page` becomes native (feeds the Citation transform above) and
+the "schematic" beat is back on; if text stays, the beat is dropped honestly.
+
+**Canonical `doc_id` namespace = S/V/O (per `validation/DATA_MANIFEST.md`), everywhere.**
+Four namespaces coexist today (S/V/O · `DOC-xxx` in data/schema.md · `eltek-…` retriever
+fixtures · `etsi-…` validation fixtures). S/V/O is the primary key the frozen event fixtures
+already cite (V4, S1, FIST-3-6…); the corpus manifest and every fixture manifest re-adopt it,
+or citations won't resolve to a document on click.
+
+**Corpus builder plan (for #54).** Keep all three manifest shapes intact and adapt between them:
+1. `corpus_manifest.json` — **doc-level** `{doc_id, type, title, path, vendor, equipment_class, site_id, date, tags}` (loader output, data/schema.md §7).
+2. **Chunking adapter** (to code in #54) explodes each document into per-section chunks.
+3. Emits `ingest_manifest` **chunk-level** rows `{doc_id, title, section, path_or_text}` consumed by `retriever.ingest_manifest`.
+`DATA_MANIFEST.md` stays the human rights/sourcing table (not machine-consumed). The adapter is
+the single owner of the doc→section explosion.
+
+**Status:** PROPOSED — provisional; revisit after the Vultr workshop (visual-vs-text is the
+one decision that can flip `page` and the corpus indexing cost).
