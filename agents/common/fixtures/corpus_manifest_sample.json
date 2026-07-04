@@ -1,0 +1,24 @@
+[
+  {
+    "doc_id": "V2",
+    "type": "ran_manual",
+    "title": "Eltek Smartpack2 Master Controller guide — rectifier alarms (excerpt)",
+    "path": "rectifier_flatpack2.txt",
+    "vendor": "Eltek",
+    "equipment_class": "rectifier",
+    "site_id": null,
+    "date": "2020-01-01",
+    "tags": ["dc_plant", "rectifier", "undervoltage", "confirm-scenario"]
+  },
+  {
+    "doc_id": "UFC-3-540-07",
+    "type": "power_spec",
+    "title": "UFC 3-540-07 — -48V DC power plant electrical safety (excerpt)",
+    "path": "safety_dc_power_-48v.txt",
+    "vendor": null,
+    "equipment_class": null,
+    "site_id": null,
+    "date": "2019-01-01",
+    "tags": ["safety", "dc-plant", "lockout", "remediation"]
+  }
+]
