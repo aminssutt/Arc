@@ -22,6 +22,14 @@ from contracts.agent_interface import AgentInput, AgentOutput, Citation, Retriev
 NAME = "remediation"
 MIN_SAFETY_STEPS = 2
 
+# Token budget for the remediation call. The payload is an ordered procedure +
+# cited safety steps + parts; 2000 gives comfortable headroom so the model
+# finishes cleanly (finish_reason=stop). The structured_json re-prompt is a
+# SAFETY NET, not a budget (contracts/decisions.md): a finish_reason=length here
+# would cost a whole extra LLM pass -- and, unbounded, can length-fail the retry
+# too -- so we size to avoid it rather than lean on the retry.
+_REMEDIATION_MAX_TOKENS = 2000
+
 
 class RemediationError(RuntimeError):
     """Raised when the corpus cannot support a safe, cited procedure."""
@@ -118,7 +126,8 @@ def _build_prompt(cause: dict[str, Any], proc_refs: list[RetrievedRef],
         f"SAFETY SOURCES (cite these by doc_id):\n{_render_refs(safety_refs)}\n\n"
         "Return the ordered procedure and at least "
         f"{MIN_SAFETY_STEPS} safety steps, each citing a doc_id from the SAFETY "
-        "SOURCES above. Name the exact part(s) the repair needs."
+        "SOURCES above. Name the exact part(s) the repair needs. "
+        "Keep it tight: at most 8 procedure steps, each step at most 2 sentences."
     )
     return [
         {"role": "system", "content": _persona()},
@@ -155,20 +164,25 @@ class RemediationAgent:
         result = await self._vultr.structured_json(
             _build_prompt(cause, proc_refs, safety_refs),
             schema=REMEDIATION_SCHEMA,
-            max_tokens=900,
+            max_tokens=_REMEDIATION_MAX_TOKENS,
         )
 
         # Grounding guard: keep only safety steps whose doc_id resolves to a
         # retrieved ref -- the model may not be trusted to cite honestly.
+        # The model sometimes packs the section into the id field
+        # (e.g. "site-safety-dc-power-plant §2"), so we also try the base id
+        # (before "§"); it must STILL resolve to a retrieved ref, which preserves
+        # the "no hallucinated citation" invariant -- only the formatting is tolerated.
         retrieved_by_id = {r.doc_id: r for r in refs}
         cited_safety: list[dict[str, Any]] = []
         citations: list[Citation] = []
         seen: set[tuple[str, str | None]] = set()
         for step in result.get("safety_steps", []):
-            doc_id = step.get("doc_id")
-            ref = retrieved_by_id.get(doc_id)
+            raw = step.get("doc_id") or ""
+            ref = retrieved_by_id.get(raw) or retrieved_by_id.get(raw.split("§")[0].strip())
             if ref is None:
                 continue  # drop uncited/hallucinated citation
+            doc_id = ref.doc_id  # canonical id from the retrieved ref, not the packed string
             section = step.get("section") or ref.section
             cited_safety.append({"step": step["step"], "doc_id": doc_id, "section": section})
             key = (doc_id, section)
