@@ -1,16 +1,16 @@
-"""Evaluation of the matcher (mirrors validation/EVAL_SPEC.md).
+"""Evaluation of the difficulty-routed matcher (mirrors validation/EVAL_SPEC.md).
 
-Not an ML training (6->25 employees is far too small); this tunes/verifies the
-deterministic weights and reports honest top-k hit rates over a labeled set, with
-a held-out split and negative controls.
+Not ML training (25 employees is far too small); this verifies the deterministic
+routing on labeled scenarios and reports the honest top-1 accuracy, plus the
+tier-routing and zone-fallback behaviors and the negative controls.
 
-Metrics: top-k hit = at least one CORRECT employee appears in the top-k match.
+Metric: top-1 exact = the single notified employee equals the labeled expectation.
 """
 
 import json
 import pathlib
 
-from agents.responder_matching import match_responders
+from agents.responder_matching import match_responder
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 ROSTER = json.loads((ROOT / "data" / "employees.json").read_text(encoding="utf-8"))
@@ -19,39 +19,45 @@ AS_OF = EVAL["as_of"]
 BY_ID = {e["employee_id"]: e for e in ROSTER}
 
 
-def _hit_rate(cases, k):
-    hits = 0
-    for case in cases:
-        got = {r["employee_id"] for r in match_responders(ROSTER, case["fault"], as_of=AS_OF, top_k=k)}
-        if got & set(case["correct"]):
-            hits += 1
-    return hits / len(cases)
+def test_top1_exact_on_all_scenarios():
+    misses = []
+    for s in EVAL["scenarios"]:
+        r = match_responder(ROSTER, s["fault"], as_of=AS_OF)
+        got = r["employee_id"] if r else None
+        if got != s["expect"]:
+            misses.append(f"{s['id']}: expected {s['expect']}, got {got}")
+    assert not misses, "top-1 misses: " + "; ".join(misses)
 
 
-def test_calibration_top3_perfect():
-    assert _hit_rate(EVAL["calibration"], k=3) == 1.0
+def test_scenario_tier_and_zone_flags():
+    for s in EVAL["scenarios"]:
+        r = match_responder(ROSTER, s["fault"], as_of=AS_OF)
+        assert r is not None, s["id"]
+        if "expect_tier" in s:
+            assert r["tier"] == s["expect_tier"], f"{s['id']}: tier {r['tier']} != {s['expect_tier']}"
+        assert r["out_of_zone"] == s["expect_out_of_zone"], f"{s['id']}: out_of_zone {r['out_of_zone']}"
 
 
-def test_calibration_top2_strong():
-    assert _hit_rate(EVAL["calibration"], k=2) >= 0.85
+def test_difficulty_routing_direction():
+    # Simple scenarios must land a lower level than complex scenarios (on average).
+    simple = [match_responder(ROSTER, s["fault"], as_of=AS_OF)["level"]
+              for s in EVAL["scenarios"] if s["fault"].get("code", "").endswith(("FUSE-BLOWN", "ROUTER-FAIL"))]
+    complex_ = [match_responder(ROSTER, s["fault"], as_of=AS_OF)["level"]
+                for s in EVAL["scenarios"] if "GRID-LOSS" in s["fault"].get("code", "") or "BACKHAUL-DOWN" in s["fault"].get("code", "") or "VSWR" in s["fault"].get("code", "")]
+    assert max(simple) < min(complex_), "a simple task routed to a higher level than a complex one"
 
 
-def test_holdout_top3_generalizes():
-    # The honest, unseen number — must still land the right responder in the top-3.
-    assert _hit_rate(EVAL["holdout"], k=3) >= 0.66
-
-
-def test_negative_control_no_wrong_page():
+def test_negative_controls():
     for nc in EVAL["negative_controls"]:
-        got = {r["employee_id"] for r in match_responders(ROSTER, nc["fault"], as_of=AS_OF, top_k=3)}
-        for banned in nc.get("must_not_notify", []):
-            assert banned not in got, f"{nc['id']}: {banned} wrongly notified"
-        for r in match_responders(ROSTER, nc["fault"], as_of=AS_OF, top_k=3):
-            assert r["status"] == "available"          # unavailable never paged
+        r = match_responder(ROSTER, nc["fault"], as_of=AS_OF)
+        if nc.get("expect_escalate"):
+            assert r is None, f"{nc['id']}: expected escalate, got {r}"
+        if nc.get("must_not_notify"):
+            assert r is None or r["employee_id"] != nc["must_not_notify"], f"{nc['id']}: paged {nc['must_not_notify']}"
 
 
-def test_every_eval_label_is_a_real_available_employee():
-    for case in EVAL["calibration"] + EVAL["holdout"]:
-        for emp_id in case["correct"]:
-            assert emp_id in BY_ID, f"{case['id']}: unknown employee {emp_id}"
-            assert BY_ID[emp_id]["status"] == "available", f"{case['id']}: {emp_id} not available"
+def test_every_expected_employee_is_real_and_available():
+    for s in EVAL["scenarios"]:
+        emp = BY_ID.get(s["expect"])
+        assert emp is not None, f"{s['id']}: unknown {s['expect']}"
+        assert emp["status"] == "available", f"{s['id']}: {s['expect']} not available"
