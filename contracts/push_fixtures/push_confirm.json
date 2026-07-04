@@ -1,5 +1,5 @@
 {
-  "Simulator Target Bundle": "com.arc.field",
+  "Simulator Target Bundle": "com.arc.technician",
   "aps": {
     "alert": {
       "title": "Arc — PAR-021-NORD: energy fault",

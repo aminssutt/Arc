@@ -30,7 +30,7 @@ class Settings:
     # `xcrun simctl push booted <file>` (macOS demo machine); 'apns' is the
     # flag-gated real path (INT.7) and refuses to start unless configured.
     push_mode: str = field(default_factory=lambda: _env("ARC_PUSH_MODE", "file"))
-    push_bundle_id: str = field(default_factory=lambda: _env("ARC_PUSH_BUNDLE_ID", "com.arc.field"))
+    push_bundle_id: str = field(default_factory=lambda: _env("ARC_PUSH_BUNDLE_ID", "com.arc.technician"))
     push_out_dir: Path = field(default_factory=lambda: Path(_env("ARC_PUSH_OUT_DIR", str(Path(tempfile.gettempdir()) / "arc-push-out"))))
     heartbeat_s: float = field(default_factory=lambda: float(_env("ARC_HEARTBEAT_S", "15")))
     # Agent timeout → graceful `agent_completed status=timeout`, never a crash (INT.5).
