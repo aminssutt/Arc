@@ -1,0 +1,7 @@
+# Dev-only dependencies for the agents/common test suite (issue #25).
+# Pinned to the latest stable at coding date (2026-07-04); pip-audit clean (0 CVE).
+# The Vultr API is mocked with httpx.MockTransport (bundled in httpx) -- no extra
+# HTTP-mock library is pulled in.
+-r requirements.txt
+pytest==9.1.1
+pytest-asyncio==1.4.0

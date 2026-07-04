@@ -1,0 +1,4 @@
+# Runtime deps for the shared agent layer (agents/common).
+# httpx: async HTTP client for the Vultr Serverless Inference API.
+#   0.28.1 = latest stable at coding date (2026-07-04), pip-audit clean (0 CVE).
+httpx==0.28.1
