@@ -32,24 +32,44 @@ class ValidationAgentAdapter:
         self._seeds = seeds
         self._inner: Agent = inner or ValidationAgent()
 
+    _SEVERITY_RANK = {"critical": 0, "major": 1, "minor": 2, "warning": 3}
+
     def _load_bearing_failure(self, ctx: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         failures: list[dict] = ctx.get("failures", [])
         vreqs = (ctx.get("diagnostic") or {}).get("verification_requests", [])
-        failure_id = vreqs[0]["failure_id"] if vreqs else (failures[0]["id"] if failures else "F1")
+        if vreqs:  # Root-Cause said what to verify — trust it
+            failure_id = vreqs[0]["failure_id"]
+        elif failures:  # fallback: highest-severity failure carries the diagnosis
+            failure_id = min(failures, key=lambda f: self._SEVERITY_RANK.get(f.get("severity"), 9))["id"]
+        else:
+            failure_id = "F1"
         failure = next((f for f in failures if f["id"] == failure_id),
                        failures[0] if failures else {})
         return failure_id, failure
 
     def _signature(self, failure: dict[str, Any]) -> dict[str, Any]:
-        rule = self._seeds.alarm_dictionary.get(failure.get("code", ""))
+        # Canonical chain (schema §1.1): failure.alarm_code, else raw trap via
+        # trap_map, else the code itself (legacy canonical-code callers).
+        code = failure.get("code", "")
+        alarm_code = (failure.get("alarm_code")
+                      or self._seeds.trap_map.get(code, {}).get("alarm_code")
+                      or code)
+        rule = self._seeds.alarm_dictionary.get(alarm_code)
         if not rule:
             return {}  # agent falls back to verdict-only fusion — still decides
+        op, threshold = rule["threshold_op"], rule["threshold_value"]
+        from backend.app.seeds import SIGNED_METRICS
+        if rule["signal"] in SIGNED_METRICS:
+            # Dictionary thresholds are MAGNITUDES; field measurements are signed
+            # negatives. |v| < t  <=>  v > -t  (and mirrored for the other ops).
+            op = {"lt": "gt", "lte": "gte", "gt": "lt", "gte": "lte"}.get(op, op)
+            threshold = -threshold
         return {
             "metric": rule["signal"],
             "unit": rule["unit"],
-            "abnormal_when": rule["threshold_op"],
-            "threshold": rule["threshold_value"],
-            "citation": {"doc_id": "data/alarm_dictionary", "section": rule["alarm_code"]},
+            "abnormal_when": op,
+            "threshold": threshold,
+            "citation": {"doc_id": "data/alarm_dictionary", "section": alarm_code},
         }
 
     async def run(self, data: AgentInput) -> AgentOutput:

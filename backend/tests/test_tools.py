@@ -6,33 +6,33 @@ from contracts import (CostQuery, DispatchRequest, InventoryQuery, Tool)
 
 async def test_cost_engine_deterministic(tools):
     cost, _, _ = tools
-    report = await cost(CostQuery(incident_id="I1", site_id="SITE-PAR-014",
+    report = await cost(CostQuery(incident_id="I1", site_id="PAR-021-NORD",
                                   failure_family="energy", remediation="replace module",
-                                  parts=["PN-RECT-48-2000"]))
-    # parts 420.00 + labor 2h x 85.00 + truck 180.00 = 770.00 EUR
-    assert report.repair_cost == 770.00
-    # downtime 2.50/min x 120 min x 1.5 (gold) + 5000.00 penalty = 5450.00 EUR
-    assert report.downtime_cost_avoided == 5450.00
-    assert report.currency == "EUR"
-    assert report.breakdown["parts"] == 420.00
+                                  parts=["APR48-3G"]))
+    # parts 769.04 + labor 2h x 35.73 + truck 325.00 = 1165.50 USD (schema cross-check)
+    assert report.repair_cost == 1165.50
+    # downtime 5.00/min x 240 min x 1.5 (gold) + 5000.00 penalty = 6800.00 USD
+    assert report.downtime_cost_avoided == 6800.00
+    assert report.currency == "USD"
+    assert report.breakdown["parts"] == 769.04
 
 
 async def test_inventory_stock_and_flags(tools):
     _, inventory, _ = tools
-    match = await inventory(InventoryQuery(incident_id="I1", site_id="SITE-PAR-014",
-                                           part_numbers=["PN-RECT-48-2000", "PN-DOES-NOT-EXIST"]))
+    match = await inventory(InventoryQuery(incident_id="I1", site_id="PAR-021-NORD",
+                                           part_numbers=["APR48-3G", "PN-DOES-NOT-EXIST"]))
     found, unknown = match.matches
-    assert found.in_stock and found.quantity == 6 and found.warehouse_id == "WH-PAR-CENTRAL"
+    assert found.in_stock and found.quantity == 3 and found.warehouse_id == "WH-PAR-EST"
     assert not unknown.in_stock and unknown.quantity == 0   # flagged, not dropped
 
 
 async def test_dispatch_books_then_conflicts(tools):
     _, _, dispatch = tools
-    req = DispatchRequest(incident_id="I1", site_id="SITE-PAR-014",
+    req = DispatchRequest(incident_id="I1", site_id="PAR-021-NORD",
                           skill="power", priority="P1", parts=[])
     first = await dispatch(req)
-    assert first.booked and first.crew_id == "CREW-IDF-3"   # lowest ETA available in IDF-North
-    second = await dispatch(req)                            # CREW-IDF-3 now on_job, IDF-5 seeded on_job
+    assert first.booked and first.crew_id == "PWR-2"        # only available dc_power crew in IDF-North
+    second = await dispatch(req)                            # PWR-2 now on_job, PWR-5 seeded on_job
     assert not second.booked and second.crew_id == ""       # conflict case handled
     dispatch.release_all()
     third = await dispatch(req)

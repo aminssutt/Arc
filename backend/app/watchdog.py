@@ -15,7 +15,7 @@ failures are attached to it — never a second FaultEvent (BE.2 acceptance).
 from datetime import datetime
 from typing import Any, Awaitable, Callable
 
-from backend.app.seeds import Seeds
+from backend.app.seeds import SIGNED_METRICS, Seeds
 
 _OPS: dict[str, Callable[[float, float], bool]] = {
     "lt": lambda v, t: v < t,
@@ -38,6 +38,7 @@ class Watchdog:
         on_fault: Callable[[str, str, list[dict], dict], Awaitable[None]],
         on_additional_failures: Callable[[str, list[dict]], Awaitable[None]] | None = None,
     ) -> None:
+        self._seeds = seeds
         self._rules_by_signal: dict[str, list[dict]] = {}
         for rule in seeds.alarm_dictionary.values():
             self._rules_by_signal.setdefault(rule["signal"], []).append(rule)
@@ -82,19 +83,21 @@ class Watchdog:
             await self._on_fault(site_id, family, failures, trigger[site_id])
 
     def _family_of(self, failure: dict) -> str:
-        for rules in self._rules_by_signal.values():
-            for r in rules:
-                if r["alarm_code"] == failure["code"]:
-                    return r["family"]
-        raise KeyError(f"no alarm rule for fired failure {failure['code']}")
+        rule = self._seeds.alarm_dictionary.get(failure["alarm_code"])
+        if rule is None:
+            raise KeyError(f"no alarm rule for fired failure {failure['alarm_code']}")
+        return rule["family"]
 
     def _evaluate(self, sig: dict[str, Any]):
         """Yield (failure, rule, triggered_at_iso) for every rule that fires."""
         now = _ts(sig["ts"])
         value = float(sig["value"]) if not isinstance(sig["value"], bool) else float(sig["value"])
+        # Signed metrics (dc_voltage_v, ...) compare MAGNITUDE to the threshold
+        # (data/schema.md §1.1: "-45.0" vs `lt 45.0` means the plant sagged).
+        cmp_value = abs(value) if sig["signal"] in SIGNED_METRICS else value
         for rule in self._rules_by_signal.get(sig["signal"], []):
             key = (sig["site_id"], rule["alarm_code"])
-            breach = _OPS[rule["threshold_op"]](value, rule["threshold_value"])
+            breach = _OPS[rule["threshold_op"]](cmp_value, rule["threshold_value"])
             state = self._states.get(key)
             if not breach:
                 self._states.pop(key, None)  # condition cleared -> debounce restarts
@@ -110,8 +113,13 @@ class Watchdog:
                 state["fired"] = True
                 yield (
                     {
-                        # failure `id` is assigned by the orchestrator (F1, F2, ...)
-                        "code": rule["alarm_code"],
+                        # failure `id` is assigned by the orchestrator (F1, F2, ...).
+                        # `code` = RAW feed trap (frozen fixtures); `alarm_code` =
+                        # canonical taxonomy key via data/trap_map.csv (§1.1).
+                        "code": sig.get("trap")
+                        or self._seeds.raw_trap_for(rule["alarm_code"])
+                        or rule["alarm_code"],
+                        "alarm_code": rule["alarm_code"],
                         "severity": rule["severity_default"],
                         "equipment": sig.get("equipment_id") or rule["subfamily"],
                         "metric": sig["signal"],

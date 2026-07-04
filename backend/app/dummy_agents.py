@@ -52,45 +52,50 @@ class DummyCorrelationAgent:
         )
 
 
+_SEVERITY_RANK = {"critical": 0, "major": 1, "minor": 2, "warning": 3, "indeterminate": 4, "cleared": 5}
+
+
 class DummyRootCauseAgent:
     name = "root_cause"
 
     async def run(self, data: AgentInput) -> AgentOutput:
         failures: list[dict] = data.context.get("failures", [])
-        top = failures[0] if failures else {"code": "UNKNOWN", "id": "F1"}
+        # load-bearing failure = highest severity (the one worth verifying in
+        # the field), not merely the first to fire
+        top = min(failures, key=lambda f: _SEVERITY_RANK.get(f.get("severity"), 9))             if failures else {"code": "UNKNOWN", "id": "F1"}
         pivot = data.context.get("phase_cause") == "pivot"
         if pivot:
             causes = [
                 {"rank": 1, "cause": "telemetry/sensing path fault — field measurement contradicts feed (dummy re-diagnosis)",
                  "confidence": 0.84,
-                 "citations": [{"doc_id": "DOC-OUT-045", "claim": "historical: fault mistaken for DC issue"}]},
+                 "citations": [{"doc_id": "V6", "claim": "supervision/sensing trap semantics"}]},
                 {"rank": 2, "cause": f"{top['code']} as originally reported — demoted after contradiction",
                  "confidence": 0.2,
-                 "citations": [{"doc_id": "DOC-INC-114", "claim": "original signature match"}]},
+                 "citations": [{"doc_id": "V4", "claim": "original signature match"}]},
             ]
             retrievals = [{"pass": 3, "query": "measurement contradicts telemetry sensing fault",
-                           "results": [{"doc_id": "DOC-OUT-045", "title": "Outage OUT-045", "score": 0.83}]}]
+                           "results": [{"doc_id": "V6", "title": "Eltek MIB", "score": 0.83}]}]
             urgency = {"kind": "none_immediate", "basis": "field measurement normal (dummy)"}
         else:
             causes = [
                 {"rank": 1, "cause": f"{top['code']} — primary suspected cause (dummy)",
                  "confidence": 0.87,
-                 "citations": [{"doc_id": "DOC-INC-114", "claim": "matching historical incident"},
-                               {"doc_id": "DOC-RAN-001", "claim": "vendor O&M alarm signature"}]},
+                 "citations": [{"doc_id": "TM-5-693", "claim": "symptom/fix matrix row"},
+                               {"doc_id": "V4", "claim": "vendor alarm signature"}]},
                 {"rank": 2, "cause": "grid loss", "confidence": 0.06,
                  "rejected_because": "mains signal normal (dummy)",
-                 "citations": [{"doc_id": "DOC-RAN-001", "claim": "mains alarm definition"}]},
+                 "citations": [{"doc_id": "V6", "claim": "mains alarm trap definition"}]},
             ]
             retrievals = [
                 {"pass": 1, "query": f"{top['code']} alarm signature",
-                 "results": [{"doc_id": "DOC-INC-114", "title": "INC-114 ticket", "score": 0.86},
-                             {"doc_id": "DOC-RAN-001", "title": "NetSure-48 O&M", "score": 0.74}]},
+                 "results": [{"doc_id": "V4", "title": "NetSure 2100 manual", "score": 0.86},
+                             {"doc_id": "V6", "title": "Eltek MIB", "score": 0.74}]},
                 {"pass": 2, "query": "battery autonomy discharge procedure",
-                 "results": [{"doc_id": "DOC-PWR-002", "title": "DC undervoltage procedure", "score": 0.81}]},
+                 "results": [{"doc_id": "FIST-3-6", "title": "FIST 3-6 battery maintenance", "score": 0.81}]},
             ]
             urgency = {"kind": "time_to_lvd", "estimate_min": 210,
                        "basis": "design autonomy from power_plant seed (dummy)",
-                       "citations": [{"doc_id": "DOC-PWR-002", "claim": "discharge criteria"}]}
+                       "citations": [{"doc_id": "FIST-3-6", "claim": "discharge criteria"}]}
         return AgentOutput(
             incident_id=data.incident_id,
             agent=self.name,
@@ -145,18 +150,18 @@ class DummyRemediationAgent:
 
     async def run(self, data: AgentInput) -> AgentOutput:
         pivot = data.context.get("validation_result") == "pivot"
-        part = data.context.get("suspect_part") or "PN-RECT-48-2000"
+        part = data.context.get("suspect_part") or "APR48-3G"
         if pivot:
             procedure = {
                 "title": "Replace sensing path / verify telemetry; schedule original fix (dummy)",
                 "steps": [
                     {"n": 1, "text": "Replace/reseat the sensing module; verify telemetry matches DMM",
-                     "citations": [{"doc_id": "DOC-OUT-045", "claim": "post-incident corrective action"}]},
+                     "citations": [{"doc_id": "V6", "claim": "sensing channel replacement"}]},
                     {"n": 2, "text": "Schedule the originally reported repair in the next maintenance window",
-                     "citations": [{"doc_id": "DOC-RAN-001", "claim": "hot-swap maintenance procedure"}]},
+                     "citations": [{"doc_id": "V4", "claim": "hot-swap maintenance procedure"}]},
                 ],
                 "safety": [{"text": "Standard DC plant PPE; insulated tools",
-                            "citations": [{"doc_id": "DOC-RAN-001", "claim": "safety section"}]}],
+                            "citations": [{"doc_id": "UFC-3-540-07", "claim": "electrical safety practices"}]}],
             }
             hints = [{"priority": "P2", "action": "Replace sensing module and verify telemetry"},
                      {"priority": "P3", "action": "Scheduled repair of originally reported failure (demoted)"}]
@@ -165,12 +170,12 @@ class DummyRemediationAgent:
                 "title": "Replace failed module per vendor procedure (dummy)",
                 "steps": [
                     {"n": 1, "text": "Verify redundancy carries load before extraction",
-                     "citations": [{"doc_id": "DOC-RAN-001", "claim": "hot-swap precondition"}]},
+                     "citations": [{"doc_id": "V4", "claim": "hot-swap precondition"}]},
                     {"n": 2, "text": "Swap module; verify plant returns to float",
-                     "citations": [{"doc_id": "DOC-PWR-002", "claim": "recovery procedure"}]},
+                     "citations": [{"doc_id": "TM-5-693", "claim": "recovery procedure"}]},
                 ],
                 "safety": [{"text": "DC plant lockout per SOP; insulated tools",
-                            "citations": [{"doc_id": "DOC-RAN-001", "claim": "safety section"}]}],
+                            "citations": [{"doc_id": "UFC-3-540-07", "claim": "electrical safety practices"}]}],
             }
             hints = [{"priority": "P1", "action": "Replace failed module (part matched to stock)"},
                      {"priority": "P2", "action": "Post-restore health check per procedure"}]
@@ -178,10 +183,10 @@ class DummyRemediationAgent:
             incident_id=data.incident_id,
             agent=self.name,
             summary=procedure["title"],
-            payload={"procedure": procedure, "parts": [{"part_no": part, "description": "matched spare (dummy)", "qty": 1}],
+            payload={"procedure": procedure, "parts": [{"part_no": part, "description": "Eaton 48V/2000W rectifier module", "qty": 1}],
                      "action_hints": hints},
             retrieved_refs=[],
-            citations=[Citation(doc_id="DOC-PWR-002", section="recovery procedure")],
+            citations=[Citation(doc_id="TM-5-693", section="recovery procedure")],
             confidence=0.88,
         )
 

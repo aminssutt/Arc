@@ -20,9 +20,9 @@ from backend.app.validation_adapter import ValidationAgentAdapter
 
 from backend.tests.conftest import assert_contract
 
-FAULT_FAILURES = [{"code": "PWR-DC-UV", "severity": "critical",
-                   "equipment": "EQ-PAR-014-RECT-1", "metric": "dc_plant_voltage_v",
-                   "value": 44.0, "first_seen": "2026-07-05T09:00:00Z"}]
+FAULT_FAILURES = [{"code": "DC_UNDERVOLTAGE", "alarm_code": "PWR-DC-UV", "severity": "critical",
+                   "equipment": "busbar", "metric": "dc_voltage_v",
+                   "value": -44.0, "first_seen": "2026-07-05T09:00:00Z"}]
 TRIGGER = {"rule": "PWR-DC-UV", "debounce_s": 60, "triggered_at": "2026-07-05T09:01:01Z"}
 
 
@@ -54,13 +54,13 @@ def _confirm_body(orch):
             "submitted_at": "2026-07-05T09:33:00Z",
             "validations": [{"failure_id": f["id"], "verdict": "real"}
                             for f in orch.incident["failures"]],
-            "measurements": [{"metric": "dc_plant_voltage_v", "point": "busbar",
-                              "value": 43.9, "unit": "V"}]}
+            "measurements": [{"metric": "dc_voltage_v", "point": "busbar",
+                              "value": -43.9, "unit": "V"}]}
 
 
 async def test_section_shaped_citations_become_event_legal(bus, seeds, tools, tmp_path, event_validator):
     orch = _orch(bus, seeds, tools, tmp_path)
-    await orch.handle_fault("SITE-PAR-014", "energy", FAULT_FAILURES, TRIGGER)
+    await orch.handle_fault("PAR-021-NORD", "energy", FAULT_FAILURES, TRIGGER)
     await orch.join()
     await orch.handle_validation(_confirm_body(orch))
     await orch.join()
@@ -76,7 +76,7 @@ async def test_section_shaped_citations_become_event_legal(bus, seeds, tools, tm
 
 async def test_real_cid_agent_numbers_flow_into_report(bus, seeds, tools, tmp_path, event_validator):
     orch = _orch(bus, seeds, tools, tmp_path)
-    await orch.handle_fault("SITE-PAR-014", "energy", FAULT_FAILURES, TRIGGER)
+    await orch.handle_fault("PAR-021-NORD", "energy", FAULT_FAILURES, TRIGGER)
     await orch.join()
     await orch.handle_validation(_confirm_body(orch))
     await orch.join()
@@ -88,9 +88,9 @@ async def test_real_cid_agent_numbers_flow_into_report(bus, seeds, tools, tmp_pa
     assert "3 tool calls" in done["data"]["summary"]
 
     report = [e for e in bus.history if e["type"] == "action_report_ready"][0]["data"]["report"]
-    assert report["cost"]["intervention"] == 770.00        # Cost Engine, verbatim
-    assert report["cost"]["avoided"] == 5450.00
-    assert report["inventory"]["part_no"] == "PN-RECT-48-2000"
+    assert report["cost"]["intervention"] == 1165.50        # Cost Engine, verbatim
+    assert report["cost"]["avoided"] == 6800.00
+    assert report["inventory"]["part_no"] == "APR48-3G"
     assert report["inventory"]["in_stock"] is True
-    assert report["dispatch"]["crew"] == "CREW-IDF-3"      # Crew Dispatch, real booking
+    assert report["dispatch"]["crew"] == "PWR-2"      # Crew Dispatch, real booking
     assert_contract(bus.history, event_validator)
