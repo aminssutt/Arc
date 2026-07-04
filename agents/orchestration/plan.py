@@ -34,7 +34,7 @@ class Phase(str, Enum):
 PHASE_PLAN: dict[Phase, tuple[str, ...]] = {
     Phase.PHASE1: ("correlation", "root_cause"),
     Phase.HUMAN_LOOP: ("validation",),
-    Phase.PHASE2: ("remediation", "cost_inventory"),
+    Phase.PHASE2: ("remediation", "cost_inventory_dispatch"),
 }
 
 # Convenience: every agent name referenced by the plan, in execution order.

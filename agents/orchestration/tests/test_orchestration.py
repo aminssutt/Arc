@@ -99,11 +99,11 @@ def test_run_plan_threads_findings_across_phases():
     reg.register(StubAgent("correlation"))
     reg.register(StubAgent("root_cause"))
     reg.register(StubAgent("remediation"))
-    reg.register(StubAgent("cost_inventory"))
+    reg.register(StubAgent("cost_inventory_dispatch"))
 
     result = asyncio.run(run_plan(reg, [Phase.PHASE1, Phase.PHASE2], _seed()))
     assert [o.agent for o in result.outputs] == [
-        "correlation", "root_cause", "remediation", "cost_inventory",
+        "correlation", "root_cause", "remediation", "cost_inventory_dispatch",
     ]
     # Phase-2's first agent saw all of phase-1's findings.
     assert set(result.findings["remediation"]["saw_findings"]) == {"correlation", "root_cause"}
