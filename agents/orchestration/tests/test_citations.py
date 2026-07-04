@@ -6,6 +6,7 @@ import pathlib
 import pytest
 
 from agents.orchestration.citations import (
+    enrich_citations,
     load_sources,
     resolve_citation,
     resolve_report_citations,
@@ -45,6 +46,17 @@ def test_pdf_page_anchor_added():
     assert r["page"] == 12
 
 
+def test_registry_page_hint_fills_page_when_citation_has_none():
+    src = {"V2": {"doc_id": "V2", "title": "Eltek", "publisher": "Eltek", "family": "PWR",
+                  "rights": "fetch-at-build", "url": "https://x/guide.pdf", "local_path": None,
+                  "page_hint": "p24"}}
+    r = resolve_citation({"doc_id": "V2", "section": "3.2"}, src)
+    assert r["page"] == 24 and r["open_url"].endswith("#page=24")
+    # explicit citation page wins over the hint
+    r2 = resolve_citation({"doc_id": "V2", "section": "3.2", "page": 5}, src)
+    assert r2["page"] == 5
+
+
 def test_non_pdf_url_gets_no_page_anchor():
     r = resolve_citation({"doc_id": "V8", "section": "OID map", "page": 3}, SOURCES)
     assert r["open_url"] == "https://raw.githubusercontent.com/librenms/eltek-webpower.yaml"
@@ -74,6 +86,19 @@ def test_report_citations_dedup():
              {"doc_id": "V8", "section": "OID map"}]
     out = resolve_report_citations(cites, SOURCES)
     assert len(out) == 2
+
+
+def test_enrich_preserves_claim_and_omits_null_page():
+    # Backend path: keep doc_id + claim (event-required), add openable fields,
+    # and DROP page when unknown (event schema types page as integer).
+    known = enrich_citations([{"doc_id": "S1", "claim": "voltage envelope"}], SOURCES)[0]
+    assert known["claim"] == "voltage envelope"      # preserved
+    assert known["doc_id"] == "S1" and known["openable"] is True and known["url"]
+    assert "page" not in known                       # S1 has no page_hint here -> omitted, not null
+
+    unknown = enrich_citations([{"doc_id": "NOPE", "claim": "x"}], SOURCES)[0]
+    assert unknown["claim"] == "x" and unknown["openable"] is False
+    assert "page" not in unknown
 
 
 def test_dedup_keeps_distinct_pages_same_doc_section():
