@@ -307,8 +307,10 @@ class Orchestrator:
             "suspect_part": self._suspect_part(),
         })
         if rem is None:
+            await self._terminate_degraded("remediation")  # never leave the incident stuck
             return
-        procedure = self._normalize_procedure(rem.payload.get("procedure", {"title": rem.summary, "steps": []}))
+        procedure = self._ensure_steps(
+            self._normalize_procedure(rem.payload.get("procedure", {"title": rem.summary, "steps": []})))
         inc["remediation"] = {**rem.payload, "procedure": procedure}
         self.bus.emit(inc["id"], "remediation_ready", {
             "procedure": procedure,
@@ -322,6 +324,7 @@ class Orchestrator:
             "top_priority": hints[0]["priority"] if hints else "P1",
         })
         if cid is None:
+            await self._terminate_degraded("cost_inventory_dispatch")  # never leave the incident stuck
             return
         inc["cid"] = cid.payload
 
@@ -337,6 +340,62 @@ class Orchestrator:
         self._transition(IDLE)
         if self.on_incident_closed:
             self.on_incident_closed(inc["site"].get("site_id", ""))
+
+    # -- degraded terminal path (issue #97): the demo must ALWAYS finish --------
+    @staticmethod
+    def _ensure_steps(procedure: dict[str, Any]) -> dict[str, Any]:
+        """Guarantee procedure.steps is non-empty. The frozen events.schema
+        requires remediation_ready.procedure.steps minItems>=1, so a degraded
+        fallback (real adapter) or an agent that omits `procedure` still gets one
+        explicit manual-intervention step rather than an invalid empty array."""
+        if not procedure.get("steps"):
+            return {**procedure,
+                    "steps": [{"n": 1,
+                               "text": "Manual intervention required — see diagnostic",
+                               "citations": []}]}
+        return procedure
+
+    async def _terminate_degraded(self, failed_agent: str) -> None:
+        """A phase-2 agent returned nothing (failed/timed out): still close the
+        incident with a DEGRADED action report + incident_resolved so the UI
+        never hangs (issue #97). The frozen schema constrains
+        incident_resolved.outcome to {resolved, downgraded}; a phase-2 failure
+        terminates as 'downgraded' with the failing agent named in the summary."""
+        inc = self.incident
+        self.bus.emit(inc["id"], "action_report_ready",
+                      {"report": self._assemble_degraded_report(failed_agent)})
+        self._transition(REPORT_READY)
+        self.bus.emit(inc["id"], "incident_resolved", {
+            "summary": f"incident closed DEGRADED: phase-2 agent '{failed_agent}' "
+                       "unavailable — remediation/costing incomplete, manual "
+                       "intervention required",
+            "outcome": "downgraded",
+        })
+        self._transition(RESOLVED)
+        self._transition(IDLE)
+        if self.on_incident_closed:
+            self.on_incident_closed(inc["site"].get("site_id", ""))
+
+    def _assemble_degraded_report(self, failed_agent: str) -> dict[str, Any]:
+        """Phase-1 diagnosis + a manual-intervention action, schema-valid with no
+        remediation/cost/dispatch data (issue #97). diagnosis.citations has
+        minItems>=1, so an empty phase-1 citation set falls back to a marker."""
+        inc = self.incident
+        causes = (inc["diagnostic"] or {}).get("causes", [])
+        top = causes[0] if causes else {"cause": "unknown", "confidence": 0.0, "citations": []}
+        diag_citations = top.get("citations") or [
+            {"doc_id": "n/a", "claim": "no grounded source — phase-2 degraded"}]
+        note = (f"phase 2 incomplete: '{failed_agent}' unavailable — remediation and "
+                "costing could not be produced; manual intervention required")
+        return {
+            "diagnosis": {"cause": top["cause"], "confidence": top["confidence"],
+                          "citations": diag_citations},
+            "actions": [{"priority": "P1",
+                         "action": "Manual intervention required — remediation/costing unavailable"}],
+            "cost": {"currency": "USD", "intervention": 0.0, "avoided": 0.0, "notes": note},
+            "honesty_notes": [note],
+            "citations": diag_citations,
+        }
 
     def _suspect_part(self) -> str | None:
         """Part of the first implicated equipment (seed topology lookup, mechanical)."""
