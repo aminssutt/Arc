@@ -1,0 +1,11 @@
+alarm_code,family,subfamily,label,severity_default,signal,unit,threshold_op,threshold_value,debounce_s,expected_measurement
+PWR-GRID-LOSS,energy,grid,Mains/grid loss,critical,mains_present,bool,eq,0,30,mains_voltage_v
+PWR-DC-UV,energy,dc_plant,-48V DC plant undervoltage,critical,dc_plant_voltage_v,V,lt,45.0,60,dc_plant_voltage_v
+PWR-RECT-FAIL,energy,rectifier,Rectifier module failure,major,rectifier_ok,bool,eq,0,30,rectifier_output_a
+PWR-BATT-DEGRADED,energy,battery,Backup battery degraded,major,battery_autonomy_min,min,lt,30,120,battery_voltage_v
+ENV-HVAC-FAIL,environment,hvac,HVAC failure / thermal risk,major,cabinet_temp_c,degC,gt,40.0,120,cabinet_temp_c
+ENV-THERMAL-SHUT,environment,hvac,Radio thermal shutdown,critical,radio_temp_c,degC,gt,75.0,30,radio_temp_c
+RF-VSWR-HIGH,rf,vswr,High VSWR / return-loss fault,major,vswr_ratio,ratio,gt,1.8,60,vswr_ratio
+RF-CELL-DOWN,rf,cell,Cell down / sleeping cell,critical,cell_active,bool,eq,0,60,cell_active
+TRN-BACKHAUL-DOWN,transport,backhaul,Backhaul link down,critical,backhaul_up,bool,eq,0,30,backhaul_up
+TRN-DEGRADED,transport,backhaul,Backhaul degradation,minor,backhaul_loss_pct,%,gt,2.0,180,backhaul_loss_pct

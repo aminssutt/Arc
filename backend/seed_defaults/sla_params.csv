@@ -1,0 +1,4 @@
+sla_tier,response_target_min,restore_target_min,priority_weight
+gold,30,120,1.5
+silver,60,240,1.0
+bronze,120,480,0.7

@@ -1,0 +1,6 @@
+param_key,label,value_cents,unit,currency
+truck_roll_flat,Truck roll flat fee,18000,per_dispatch,EUR
+labor_rate,Field labor rate,8500,per_hour,EUR
+downtime_cost,Revenue loss while site down,250,per_min_downtime,EUR
+sla_breach_penalty,SLA breach penalty,500000,per_incident,EUR
+night_surcharge,Out-of-hours surcharge,12000,per_dispatch,EUR
