@@ -1,0 +1,20 @@
+Site Safety Procedure — -48V DC Power Plant Servicing
+
+Section 2 — Lockout / Tagout and PPE before servicing
+
+Before any work on the -48V DC power plant, isolate the plant and apply
+lockout/tagout. The -48V DC bus is nominally low voltage but delivers very
+high fault current: an uncleared short across the battery bus can vaporize
+tools and cause arc-flash burns.
+
+Mandatory steps:
+  1. Notify the NOC and open a maintenance window for the site.
+  2. Open and lock the battery disconnect and the load distribution breaker
+     serving the equipment to be worked on; apply your personal tag.
+  3. Verify zero energy: measure the isolated segment with a meter before
+     touching any busbar; confirm it reads near 0 V.
+  4. Wear the required PPE: insulated gloves rated for the bus, arc-rated
+     face shield, and remove all metal jewelry and watches.
+  5. Keep one insulated tool in use at a time; never bridge the positive
+     return and the -48V bus with an uninsulated tool.
+Only after verified isolation and PPE may the rectifier or battery work begin.
