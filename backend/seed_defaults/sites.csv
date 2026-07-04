@@ -1,0 +1,3 @@
+site_id,name,type,lat,lon,address,region,power_plant_id,sla_tier
+SITE-PAR-014,Paris Nord 14,macro,48.8988,2.3554,"12 Rue de la Chapelle, 75018 Paris",IDF-North,PP-PAR-014,gold
+SITE-PAR-021,Paris Est 21,macro,48.8566,2.4051,"5 Av. Gambetta, 75020 Paris",IDF-East,PP-PAR-021,silver

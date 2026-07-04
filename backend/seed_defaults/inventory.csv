@@ -1,0 +1,6 @@
+part_number,description,equipment_class,warehouse_id,location,stock_qty,unit_price_cents,currency,lead_time_h
+PN-RECT-48-2000,Rectifier module 48V/2000W,rectifier,WH-PAR-CENTRAL,Paris-Central / A12,6,42000,EUR,48
+PN-BATT-190,VRLA battery block 12V/190Ah,battery_string,WH-PAR-CENTRAL,Paris-Central / B04,8,28500,EUR,72
+PN-ANT-8001,Panel antenna 1710-2170MHz,antenna,WH-PAR-NORTH,Paris-North / C01,2,61000,EUR,120
+PN-FEED-78,"7/8"" feeder cable (per m)",feeder,WH-PAR-NORTH,Paris-North / C09,40,1800,EUR,24
+PN-FUSE-125,DC fuse 125A NH00,rectifier,WH-PAR-CENTRAL,Paris-Central / A02,25,900,EUR,24
