@@ -58,3 +58,14 @@ button { font: inherit; cursor: pointer; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
 .eyebrow { font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--dim); font-weight: 600; }
 :focus-visible { outline: 2px solid var(--accent2); outline-offset: 2px; border-radius: 6px; }
+
+.cta {
+  display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px;
+  border-radius: 10px; border: 1px solid var(--line); text-decoration: none;
+  background: color-mix(in srgb, var(--panel) 65%, transparent); color: var(--txt);
+  font-weight: 600; backdrop-filter: blur(6px); transition: border-color .15s, transform .15s;
+}
+.cta:hover { border-color: var(--accent2); transform: translateY(-1px); }
+.cta-solid { background: var(--accent); color: #06130d; border-color: transparent; }
+.cta-solid:hover { filter: brightness(1.06); transform: translateY(-1px); }
+h1, h2, h3 { text-wrap: balance; }
