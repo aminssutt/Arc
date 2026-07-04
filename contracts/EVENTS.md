@@ -112,6 +112,7 @@ per pass, never batch.
  "verification_requests": [{"failure_id": "F2", "action": "measure busbar DC voltage with a DMM", "point": "busbar", "metric": "dc_voltage_v"}]}
 ```
 `failures` (optional) lists failures added since `fault_detected` (full failure objects).
+`rank` orders causes by operational probability: `rank: 1` is the most probable, and `confidence` is strictly decreasing with rank (rank *i* always outranks *i+1*).
 
 ### 7. push_sent
 ```json
@@ -143,6 +144,10 @@ On `pivot`, the orchestrator re-enters Phase 1 (`phase_started {phase:1, cause:"
 with the field measurement as ground truth. If existing field data suffices, the
 re-diagnosis MAY proceed to Phase 2 without a second push loop.
 
+> **Decision wording:** the frozen wire value is `pivot` (the `result` enum). A validation
+> agent may reason in other terms internally (e.g. "contradicted"); its adapter maps that
+> to `pivot` before emit — the enum is never changed.
+
 ### 11. remediation_ready
 ```json
 {"procedure": {"title": "Replace failed rectifier module",
@@ -166,7 +171,8 @@ re-diagnosis MAY proceed to Phase 2 without a second push loop.
   "inventory": {"part_no": "APR48-3G", "qty_available": 3, "location": "Paris-Est depot", "unit_price": 769.04},
   "dispatch": {"booking_id": "BK-2107", "crew": "PWR-2", "skill": "dc_power", "eta": "2026-07-05T11:30:00Z"},
   "honesty_notes": [], 
-  "citations": []}}
+  "citations": [{"doc_id": "V4", "page": 12, "claim": "rectifier alarm signature match"},
+                {"doc_id": "UFC-3-540-07", "page": 33, "claim": "DC plant lockout safety step"}]}}
 ```
 `citations` aggregates every citation in the report. `honesty_notes` states unresolved
 contradictions or synth-labeled values out loud (never hidden).

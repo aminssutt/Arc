@@ -29,21 +29,21 @@ Rights key: **commit** = file goes in the public repo. **fetch-at-build** = scri
 | V7 | SP2-MIB (Smartpack2/eNexus) | Eltek via LibreNMS | PWR | fetch-at-build | low | Modern trap set incl. alarmGeneratorTrap, batteryTemperatures |
 | V8 | LibreNMS eltek-webpower.yaml | LibreNMS (GPL-3.0) | PWR | **commit** | low | OID→equipment map + value encodings (divisor 100) for realistic telemetry |
 | V9 | Nokia AirScale Radio Units Description | Nokia (reseller-hosted) | ENV, RF | link-only | high (capped) | Radio thermal limits (45C indoor max) — quote numbers, never ingest |
-| I1 | FCC T-Mobile June 2020 outage report | FCC PSHSB | TRA, RF | **commit** | high | Gold-standard multi-cause RCA chain for ranked-causes eval |
-| I2 | FCC CenturyLink Dec 2018 outage report | FCC PSHSB | TRA | **commit** | high | Equipment-internal root cause of network-wide symptom |
-| I3 | FCC AT&T Feb 2024 outage report | FCC PSHSB | TRA | **commit** | med | Change-management failure + remediation recommendations |
-| I4 | CRTC/Xona Rogers 2022 outage exec summary | CRTC | TRA | fetch-at-build | low-med | "14 hours to find root cause" — the pitch foil for Arc |
-| I5 | FCC Hurricane Michael report (18-339) | FCC PSHSB | PWR, TRA, ENV | **commit** | high | Grid loss → genset/fuel → dispatch-asset chain (COWs, generators) |
-| I6 | FCC DIRS status report 2018-10-13 | FCC | PWR, TRA | **commit** | high | Per-county outage tables — mass-alarm regional context |
+| I1 | FCC T-Mobile June 2020 outage report | FCC PSHSB | TRN, RF | **commit** | high | Gold-standard multi-cause RCA chain for ranked-causes eval |
+| I2 | FCC CenturyLink Dec 2018 outage report | FCC PSHSB | TRN | **commit** | high | Equipment-internal root cause of network-wide symptom |
+| I3 | FCC AT&T Feb 2024 outage report | FCC PSHSB | TRN | **commit** | med | Change-management failure + remediation recommendations |
+| I4 | CRTC/Xona Rogers 2022 outage exec summary | CRTC | TRN | fetch-at-build | low-med | "14 hours to find root cause" — the pitch foil for Arc |
+| I5 | FCC Hurricane Michael report (18-339) | FCC PSHSB | PWR, TRN, ENV | **commit** | high | Grid loss → genset/fuel → dispatch-asset chain (COWs, generators) |
+| I6 | FCC DIRS status report 2018-10-13 | FCC | PWR, TRN | **commit** | high | Per-county outage tables — mass-alarm regional context |
 | I7 | NIST Jan 2016 GPS UTC anomaly paper | NIST | RF | **commit** | high | GPS-timing-loss ground truth; constellation-vs-local misdiagnosis trap |
-| I8 | CISA Nashville bombing case study | CISA/SAFECOM | ENV, PWR, TRA | **commit** (manual DL) | med-high (unread) | Physical event → power loss → flooding → service collapse cascade |
-| I9 | ACMA Optus Nov 2023 investigation report | ACMA | TRA | fetch-at-build (geo-blocked) | med (unread) | Failed-emergency-call impact quantification + vendor-default finding |
+| I8 | CISA Nashville bombing case study | CISA/SAFECOM | ENV, PWR, TRN | **commit** (manual DL) | med-high (unread) | Physical event → power loss → flooding → service collapse cascade |
+| I9 | ACMA Optus Nov 2023 investigation report | ACMA | TRN | fetch-at-build (geo-blocked) | med (unread) | Failed-emergency-call impact quantification + vendor-default finding |
 | O1 | Lumen Service Level Agreement | Lumen | ALL | fetch-at-build | high | SLA clocks + credit percentages for Cost agent penalty math |
 | O2 | FIST 3-6 Storage Battery Maintenance | US Bureau of Reclamation | PWR | **commit** | high | Battery failure modes + field-tech validation checklist |
 | O3 | OSHA CPL 02-01-056 tower hoist directive | OSHA | RF, ENV | **commit** | med | Safety prerequisites Dispatch cites before tower work |
 | O4 | UFC 3-540-07 Generator O&M | US DoD (WBDG) | PWR | **commit** | high | Genset PM schedule (Table 6-1) + ATS/load-test procedures |
 | O5 | TelExpress Eaton APR48-3G listing | TelExpress | PWR | link-only | low | $769.04 real rectifier spare price for Cost agent |
-| O6 | CALNET 3 Cat-5 SLA (Level 3 / State of CA) | CA STPD / Lumen | TRA, PWR | fetch-at-build | high | 14 stop-clock conditions + CAT 1 penalty exposure |
+| O6 | CALNET 3 Cat-5 SLA (Level 3 / State of CA) | CA STPD / Lumen | TRN, PWR | fetch-at-build | high | 14 stop-clock conditions + CAT 1 penalty exposure |
 | O7 | NSRC NOC documentation deck (CC BY-NC 3.0) | NSRC | ALL | fetch-at-build | med | Site-inventory/per-port record schema for synthetic tickets |
 
 ---
@@ -108,17 +108,17 @@ Use these exact values in injected signals. Every number was read first-hand on-
 | 21 | RF/ALL | communications, QoS, processing error, equipment, environmental | The 5 event types | S3 §8.1.1 |
 | 22 | RF | A0 = -13696.03 ns; 15 of 30 satellites; 2016-01-25 22:00 UTC | Real GPS timing anomaly magnitude + trigger | I7 |
 | 23 | RF | 100 ns PRTC bound — **UNCONFIRMED, do not cite yet** | Pending S9 PDF read | S9 (flagged) |
-| 24 | TRA | Notify: Critical 15 min / Incident 30 min; response 4 h | SLA clocks the Watchdog races | O1 §6.2/6.3 |
-| 25 | TRA | TTR: High <4 h, Medium <12 h, Low <24 h | Time-to-resolve by severity | O1 Table 6.4.1 |
-| 26 | TRA | 100 / 99.999 / 99.99 / 99.9 / 99.5 % | Availability tiers Platinum-Managed → Bronze | O1 Table 2.1 |
-| 27 | TRA | CAT 1 = >=5 circuits or >=500 Mbps down; restore <=1-3 h; penalty 100% TMRC + 10 days ADUC | Catastrophic-outage penalty math for Cost agent | O6 §5.2.8.2 |
-| 28 | TRA | Stop-clock #5 POWER: "trouble caused by a power problem outside of the responsibility of the Contractor" | SLA timer pauses — Dispatch logic, verbatim | O6 Table 5.5.7 |
-| 29 | TRA | 23,621 failed 911 calls; >=41% call failure; 12+ h | T-Mobile 2020 impact magnitudes | I1 |
-| 30 | TRA | ~37 h; 22M customers; 886 undelivered 911 calls | CenturyLink 2018 magnitudes | I2 |
-| 31 | TRA | 125M devices; 92M calls blocked; 25,000 failed 911; misconfig at 2:42 AM | AT&T 2024 magnitudes | I3 |
-| 32 | TRA | ~14 hours to pinpoint root cause; 12M+ customers | Rogers 2022 — Arc's pitch number | I4 |
-| 33 | PWR/TRA | FL Bay County: 327 sites, 229 out, 70.0% | Mass-outage table row for regional context | I6 |
-| 34 | TRA | 2,145 failed 000 calls; $12M AUD penalty — partial verification | Optus 2023 impact (see section 5) | I9 |
+| 24 | TRN | Notify: Critical 15 min / Incident 30 min; response 4 h | SLA clocks the Watchdog races | O1 §6.2/6.3 |
+| 25 | TRN | TTR: High <4 h, Medium <12 h, Low <24 h | Time-to-resolve by severity | O1 Table 6.4.1 |
+| 26 | TRN | 100 / 99.999 / 99.99 / 99.9 / 99.5 % | Availability tiers Platinum-Managed → Bronze | O1 Table 2.1 |
+| 27 | TRN | CAT 1 = >=5 circuits or >=500 Mbps down; restore <=1-3 h; penalty 100% TMRC + 10 days ADUC | Catastrophic-outage penalty math for Cost agent | O6 §5.2.8.2 |
+| 28 | TRN | Stop-clock #5 POWER: "trouble caused by a power problem outside of the responsibility of the Contractor" | SLA timer pauses — Dispatch logic, verbatim | O6 Table 5.5.7 |
+| 29 | TRN | 23,621 failed 911 calls; >=41% call failure; 12+ h | T-Mobile 2020 impact magnitudes | I1 |
+| 30 | TRN | ~37 h; 22M customers; 886 undelivered 911 calls | CenturyLink 2018 magnitudes | I2 |
+| 31 | TRN | 125M devices; 92M calls blocked; 25,000 failed 911; misconfig at 2:42 AM | AT&T 2024 magnitudes | I3 |
+| 32 | TRN | ~14 hours to pinpoint root cause; 12M+ customers | Rogers 2022 — Arc's pitch number | I4 |
+| 33 | PWR/TRN | FL Bay County: 327 sites, 229 out, 70.0% | Mass-outage table row for regional context | I6 |
+| 34 | TRN | 2,145 failed 000 calls; $12M AUD penalty — partial verification | Optus 2023 impact (see section 5) | I9 |
 
 Retrieval caution: I1 never uses "OSPF" or "IMS" — index and query with the full phrases "Open Shortest Path First" and "IP Multimedia Subsystem".
 
@@ -482,7 +482,7 @@ License as read: repo MIT; dataset ships inside repo, MIT-by-inclusion (minor am
 
 ## WAVE 3 — Multilingual + missed veins + gap fills
 
-51 entries, all URL-verified this session. Family codes: PWR power/energy · ENV environment · RF radio · TRA transport. Rights: **commit** (safe in public repo) · **fetch** (fetch-at-build, never commit) · **link** (link-only).
+51 entries, all URL-verified this session. Family codes: PWR power/energy · ENV environment · RF radio · TRN transport. Rights: **commit** (safe in public repo) · **fetch** (fetch-at-build, never commit) · **link** (link-only).
 
 ### 1. Corpus at a glance
 
@@ -490,20 +490,20 @@ License as read: repo MIT; dataset ships inside repo, MIT-by-inclusion (minor am
 |---|---|---|---|---|---|---|
 | **A. French open data + power docs** | | | | | | |
 | [Enedis — Fréquence moyenne de coupure BT](https://opendata.enedis.fr/datasets/frequence-moyenne-de-coupure-par-client-bt) | Enedis | FR | PWR | commit | Med (tables) | Real French grid-outage baseline rates for Cost/Impact |
-| [ANFR — installations radioélectriques >5W](https://www.data.gouv.fr/datasets/donnees-sur-les-installations-radioelectriques-de-plus-de-5-watts-1) | ANFR / data.gouv.fr | FR | RF, TRA | commit | Low (CSV) | Demo site = a REAL Paris cell site; coords feed Dispatch |
+| [ANFR — installations radioélectriques >5W](https://www.data.gouv.fr/datasets/donnees-sur-les-installations-radioelectriques-de-plus-de-5-watts-1) | ANFR / data.gouv.fr | FR | RF, TRN | commit | Low (CSV) | Demo site = a REAL Paris cell site; coords feed Dispatch |
 | [INRS ED 6120 — charge des batteries au plomb](https://www.inrs.fr/media.html?refINRS=ED+6120) | INRS | FR | PWR, ENV | fetch | High (hazard-zone diagrams) | FR hydrogen/explosion safety steps for battery work orders |
 | [RTE — Bilans sûreté 2021–2024](https://www.rte-france.com/donnees-publications/publications/bilans-surete) | RTE | FR (+EN) | PWR | fetch | High (incident curves) | Authentic French grid-loss failure chains for Root-Cause |
 | [Schneider Cahier Technique n°199 — qualité de l'énergie](https://sti.eduscol.education.fr/sites/eduscol.education.fr.sti/files/ressources/techniques/3361/3361-ct199.pdf) | Schneider (eduscol mirror) | FR | PWR | fetch | Very high (curves, one-lines) | Voltage-dip/outage root causes; top bilingual beat candidate |
-| [ARCEP — Mon Réseau Mobile](https://www.data.gouv.fr/datasets/mon-reseau-mobile) | ARCEP | FR | RF, TRA | commit | Med (CSV/maps) | Cell-down impact scoring (users/service lost at demo site) |
+| [ARCEP — Mon Réseau Mobile](https://www.data.gouv.fr/datasets/mon-reseau-mobile) | ARCEP | FR | RF, TRN | commit | Med (CSV/maps) | Cell-down impact scoring (users/service lost at demo site) |
 | [Saft Tel.X battery documentation](https://saft4u.saft.com/en/product/telx-nickel-battery-grid-telecom-networks) | Saft | EN/FR/IT/PT/ES/RU | PWR | fetch | High (discharge tables) | Degraded-battery specs from a French maker; multilingual docs |
 | [Legrand — Guide NF C 15-100 (rév. 2024)](https://assets.legrand.com/editorial/legrandfr/outils/documentations-et-guides/legrand-guide-norme-nf-c-15-100.pdf) | Legrand | FR | PWR | fetch | High (tables, pictograms) | FR breaker/earthing vocabulary + norm citations (residential caveat) |
 | **B. EU regulators + resilience** | | | | | | |
-| [ENISA Telecom Security Incidents 2024](https://www.enisa.europa.eu/sites/default/files/2025-07/ENISA_Telecom_Security_Incidents_2024_en_1.pdf) | ENISA | EN | PWR, ENV, TRA | commit (CC BY 4.0) | High (charts) | THE impact stats + root-cause priors (see table 2) |
+| [ENISA Telecom Security Incidents 2024](https://www.enisa.europa.eu/sites/default/files/2025-07/ENISA_Telecom_Security_Incidents_2024_en_1.pdf) | ENISA | EN | PWR, ENV, TRN | commit (CC BY 4.0) | High (charts) | THE impact stats + root-cause priors (see table 2) |
 | [CIRAS statistics tool](https://ciras.enisa.europa.eu/) | ENISA | EN | multi | link | Interactive | Pitch screenshot; public view showed managers-only notice — recheck |
-| [BEREC BoR (25) 36 — network resilience workshop](https://www.berec.europa.eu/system/files/2025-03/BoR%20%2825%29%2036%20Report_Workshop%20on%20Network%20Resilience.pdf) | BEREC | EN | PWR, ENV, TRA | fetch | Low (prose) | Recovery playbooks: A1 Slovenija flood, 1-day roaming deal |
+| [BEREC BoR (25) 36 — network resilience workshop](https://www.berec.europa.eu/system/files/2025-03/BoR%20%2825%29%2036%20Report_Workshop%20on%20Network%20Resilience.pdf) | BEREC | EN | PWR, ENV, TRN | fetch | Low (prose) | Recovery playbooks: A1 Slovenija flood, 1-day roaming deal |
 | [BNetzA Strategiepapier Resilienz (2022)](https://www.bundesnetzagentur.de/DE/Fachthemen/Telekommunikation/Resilienz/Strategiepapier_Resilienz.pdf?__blob=publicationFile&v=1) | BNetzA + BSI | DE | PWR, ENV | fetch | Med (mapping matrix) | "Power loss = biggest threat" verbatim; German retrieval beat |
-| [Arcep — Réseaux du futur note n°2, résilience (mai 2025)](https://www.arcep.fr/uploads/tx_gspublication/reseaux-du-futur_note-synthese_resilience-des-reseaux_mai2025.pdf) | Arcep | FR | PWR, ENV, TRA | fetch | Med-high (map, matrix, case boxes) | Ciaran 90%-power stat, FR reporting thresholds; the FR content beat |
-| [Ofcom Connected Nations 2024](https://www.ofcom.org.uk/siteassets/resources/documents/research-and-data/multi-sector/infrastructure-research/connected-nations-2024/connected-nations-uk-report-2024.pdf?v=386497) | Ofcom | EN | PWR, TRA, RF | fetch (browser UA) | Med (unseen — bot-blocked) | UK incident volume 1,523/yr for Impact pitch |
+| [Arcep — Réseaux du futur note n°2, résilience (mai 2025)](https://www.arcep.fr/uploads/tx_gspublication/reseaux-du-futur_note-synthese_resilience-des-reseaux_mai2025.pdf) | Arcep | FR | PWR, ENV, TRN | fetch | Med-high (map, matrix, case boxes) | Ciaran 90%-power stat, FR reporting thresholds; the FR content beat |
+| [Ofcom Connected Nations 2024](https://www.ofcom.org.uk/siteassets/resources/documents/research-and-data/multi-sector/infrastructure-research/connected-nations-2024/connected-nations-uk-report-2024.pdf?v=386497) | Ofcom | EN | PWR, TRN, RF | fetch (browser UA) | Med (unseen — bot-blocked) | UK incident volume 1,523/yr for Impact pitch |
 | [Ofcom Mobile RAN power resilience (Feb 2025)](https://www.ofcom.org.uk/siteassets/resources/documents/consultations/category-1-10-weeks/272921-resilience-guidance-and-mobile-ran-power-back-up/associated-documents/mobile-ran-power-resilience-technical-report-cfi-update.pdf?v=390945) | Ofcom | EN | PWR | fetch (browser UA) | Med (unseen) | Battery-backup economics; 999-call stats |
 | **C. Vintage Bell System / public domain** | | | | | | |
 | [BSP Div 157 — Storage Batteries archive](https://www.telecomarchive.com/docs/bsp-archive/157/) | AT&T via telecomarchive | EN | PWR | fetch | High (Tables A–K, forms) | Battery float/discharge/replacement criteria, sulfation diagnosis |
@@ -513,40 +513,40 @@ License as read: repo MIT; dataset ships inside repo, MIT-by-inclusion (minor am
 | [BSTJ 1977 — No. 4 ESS System Power (+ collection)](https://archive.org/details/bstj56-7-1099) | AT&T / archive.org | EN | PWR | fetch | High (block diagrams) | First-principles −48V architecture citations |
 | [TM 11-430 Storage Batteries (1942)](https://archive.org/details/TM11-430) | US War Dept | EN | PWR | **commit** (PD) | High (tables/figures) | Committable lead-acid troubles-and-remedies |
 | [Pagé, Storage Batteries Simplified (1917)](https://archive.org/details/storagebatterie01paggoog) | Henley / archive.org | EN | PWR | **commit** (PD) | High (plates) | Sulfation first principles; 1917→1985 continuity beat |
-| [REA TE&CM Vol. 5 (1980)](https://archive.org/details/telecommunicatio05unit) | USDA REA | EN | TRA | **commit** (gov) | Med-high (line diagrams) | T-carrier span-line + noise-investigation procedures |
+| [REA TE&CM Vol. 5 (1980)](https://archive.org/details/telecommunicatio05unit) | USDA REA | EN | TRN | **commit** (gov) | Med-high (line diagrams) | T-carrier span-line + noise-investigation procedures |
 | [Montillot, Téléphonie pratique (1893)](https://gallica.bnf.fr/ark:/12148/bpt6k97860277) | BnF Gallica | FR | PWR | link | High (414 engravings) | 1893 French telephony beat; Gallica bot-blocked, browser-check first |
 | [Systat vintage rectifier manuals (Lorain, La Marche, Marconi)](https://www.systatnow.com/misc-rectifier) | Systat | EN | PWR | link | High (schematics) | Non-AT&T rectifier symptoms + float/equalize setpoints |
 | **D. Datasets + logs** | | | | | | |
-| [LogHub](https://github.com/logpai/loghub) | LOGPAI | EN | TRA | fetch | None (raw logs) | Authentic log lines for Watchdog injector (19 datasets) |
-| [gCastle PCIC 2021 alarm datasets](https://github.com/gcastle-hub/dataset) | Huawei Noah's Ark | EN | TRA, RF | **commit** (MIT) | Low (CSV) | Ground-truth causal graphs to SCORE Correlation/Root-Cause |
-| [ARCEP historiquePannes](https://github.com/ARCEP-dev/historiquePannes) | ARCEP + 4 FR operators | FR | RF, PWR, TRA | fetch | Med (map viewer) | LIVE French site-down CSVs — demo can open on a real outage |
-| [RIPE Atlas daily dumps](https://data-store.ripe.net/datasets/atlas-daily-dumps/) | RIPE NCC | EN | TRA | fetch | None | Real latency/loss/jitter distributions for backhaul injector |
+| [LogHub](https://github.com/logpai/loghub) | LOGPAI | EN | TRN | fetch | None (raw logs) | Authentic log lines for Watchdog injector (19 datasets) |
+| [gCastle PCIC 2021 alarm datasets](https://github.com/gcastle-hub/dataset) | Huawei Noah's Ark | EN | TRN, RF | **commit** (MIT) | Low (CSV) | Ground-truth causal graphs to SCORE Correlation/Root-Cause |
+| [ARCEP historiquePannes](https://github.com/ARCEP-dev/historiquePannes) | ARCEP + 4 FR operators | FR | RF, PWR, TRN | fetch | Med (map viewer) | LIVE French site-down CSVs — demo can open on a real outage |
+| [RIPE Atlas daily dumps](https://data-store.ripe.net/datasets/atlas-daily-dumps/) | RIPE NCC | EN | TRN | fetch | None | Real latency/loss/jitter distributions for backhaul injector |
 | [GNSS Jammertest 2024 dataset](https://zenodo.org/records/15911359) | Univ. Gustave Eiffel | EN | RF | link (GPL) | Low | GPS-timing degradation ground truth |
 | [FGI-JSDR Jammertest 2023](https://www.maanmittauslaitos.fi/en/research/research/gnss-specialists/fgi-gnss-jamming-and-spoofing-dataset-repository-fgi-jsdr) | FGI Finland | EN | RF | link | Low | Backup GNSS jamming corroboration |
-| [Comprehensive Network Logs](https://zenodo.org/doi/10.5281/zenodo.10492769) | Zenodo | EN | TRA | **commit** (CC-BY) | None | 17-format ingest seed; provenance unverified — label it so |
-| [Telecom Italia Milan grid (Nature sdata2015.55)](https://www.nature.com/articles/sdata201555) | TIM / Dataverse | EN (IT data) | RF, TRA | fetch (ODbL share-alike) | Low (heatmaps derivable) | Sleeping-cell traffic baseline + users-affected scoring |
+| [Comprehensive Network Logs](https://zenodo.org/doi/10.5281/zenodo.10492769) | Zenodo | EN | TRN | **commit** (CC-BY) | None | 17-format ingest seed; provenance unverified — label it so |
+| [Telecom Italia Milan grid (Nature sdata2015.55)](https://www.nature.com/articles/sdata201555) | TIM / Dataverse | EN (IT data) | RF, TRN | fetch (ODbL share-alike) | Low (heatmaps derivable) | Sleeping-cell traffic baseline + users-affected scoring |
 | **E. Multilingual vendor + gov (DE/IT/ES)** | | | | | | |
 | [BENNING TEBECHOP SE rectifiers](https://www.benning.de/files/benning/global_content/downloads/10166872_tebechop_se_de.pdf) | BENNING | DE | PWR | fetch | High (spec tables, block diagram) | Rectifier module specs, EN 300132-2 ripple, n+r redundancy |
 | [BBK PiB-13 Notstromversorgung (2024)](https://www.bbk.bund.de/SharedDocs/Downloads/DE/Mediathek/Publikationen/PiB/PiB-13-notstromversorgung-unternehmen-behoerden.pdf?__blob=publicationFile&v=10) | BBK | DE | PWR | fetch | Med-high (Ja/Nein checklists) | Genset-failure remediation playbook; 72h fuel-cell autonomy |
 | [STULZ Modular-Line DX manual](https://repository.stulz.com/91E4A1B0/Modular-Line+DX-10-0802-d.pdf) | STULZ | DE | ENV | fetch | High (cause/remedy tables pp.57–72) | HVAC alarm dictionary: airflow loss, refrigerant low-pressure, compressor |
 | [Riello Sentinel Dual SDU 5000-10000 manual](https://www.riello-ups.it/uploads/file/872/1872/0MNSDU5K0RUITUB__MAN_SDU_5000-10000_IT_.pdf) | Riello | IT | PWR | fetch | Very high (wiring diagrams, icon tables) | UPS/battery fault validation from panel-observable evidence |
-| [ISCOM — sicurezza delle reti nelle infrastrutture critiche](https://www.mimit.gov.it/images/stories/recuperi/Comunicazioni/pub_003_ita.pdf) | ISCOM / MIMIT | IT | TRA, PWR | fetch | Med (prose) | Grid→telecom interdependency narratives for Correlation |
-| [REE — Incidente 28 abril 2025 (Iberian blackout)](https://d1n1o4zeyfu21r.cloudfront.net/WEB_Incidente_SistemaElectricoPeninsularEspanol_18junio2025.pdf) | Red Eléctrica | ES | PWR, TRA | fetch | High (400kV voltage charts, timeline) | Nationwide-grid-loss alarm-storm backdrop, minute-by-minute |
+| [ISCOM — sicurezza delle reti nelle infrastrutture critiche](https://www.mimit.gov.it/images/stories/recuperi/Comunicazioni/pub_003_ita.pdf) | ISCOM / MIMIT | IT | TRN, PWR | fetch | Med (prose) | Grid→telecom interdependency narratives for Correlation |
+| [REE — Incidente 28 abril 2025 (Iberian blackout)](https://d1n1o4zeyfu21r.cloudfront.net/WEB_Incidente_SistemaElectricoPeninsularEspanol_18junio2025.pdf) | Red Eléctrica | ES | PWR, TRN | fetch | High (400kV voltage charts, timeline) | Nationwide-grid-loss alarm-storm backdrop, minute-by-minute |
 | **F. Gap fill 1 — radio thermal specs (FCC exhibits)** | | | | | | |
 | [Baicells NeutrinoE224 user manual (FCC)](https://fcc.report/FCC-ID/2AG32PBS42020/7861844.pdf) | Baicells / fcc.report | EN | ENV, RF | fetch | High (54 spec tables, LED matrix) | **THE 45°C indoor thermal threshold** — replaces link-only V9 |
 | [Baicells Nova-436Q install guide (FCC)](https://fcc.report/FCC-ID/2AG32MBS3100196N/4816753.pdf) | Baicells | EN | ENV, PWR, RF | fetch | Very high (mount/grounding diagrams) | Outdoor −40..+55°C contrast; +42–60V DC window; VSWR LED |
 | [Baicells Nova430i quick guide (FCC)](https://fcc.report/FCC-ID/2AG32PBS3101S/5310036.pdf) | Baicells | EN | ENV, PWR | fetch | High (cabling schematic) | PoE++ power chain = second failure surface; 2nd outdoor datapoint |
 | [Baicells Nova436Q datasheet](https://baicells.com/download/Nova436Q%20Datasheet.pdf) | Baicells | EN | ENV | fetch (TLS caveat) | Spec one-pager | Vendor corroboration of −40..+55°C; drop to link if TLS fails |
 | **G. Gap fill 2 — named RAN alarm dictionaries** | | | | | | |
-| [Ruckus LTE Alarms + Event List (online docs)](https://docs.cloud.ruckuswireless.com/LTE/GUID-E1EEA9B6-9DFA-44AE-9211-FD3821AA1D85.html) | RUCKUS/CommScope | EN | RF, ENV, TRA | fetch | Med (HTML tables) | Named CBRS alarms w/ ID, cause, action (IDs 101–914) |
-| [Ruckus LTE AP Management User Guide 2019.01](https://docs.cloud.ruckuswireless.com/LTE/ruckuscloud-201901-lte-onlinehelp.pdf) | RUCKUS/CommScope | EN | RF, ENV, TRA | fetch | High (alarm chapter pp.163–184) | 30 named alarms in one ingest PDF with page numbers |
-| [Alcatel-Lucent 5620 SAM Alarm Reference R10.0](https://documentation.nokia.com/cgi-bin/dbaccessfilename.cgi/3HE06980AAAETQZZA01_V1_5620%20SAM%20Release%2010.0%20R5%20Alarm%20Reference.pdf) | ALU/Nokia | EN | RF, TRA | fetch | High (510+ alarm tables, ch.21) | THE per-alarm cause→action matrix: eNodeB, microwave, site router |
+| [Ruckus LTE Alarms + Event List (online docs)](https://docs.cloud.ruckuswireless.com/LTE/GUID-E1EEA9B6-9DFA-44AE-9211-FD3821AA1D85.html) | RUCKUS/CommScope | EN | RF, ENV, TRN | fetch | Med (HTML tables) | Named CBRS alarms w/ ID, cause, action (IDs 101–914) |
+| [Ruckus LTE AP Management User Guide 2019.01](https://docs.cloud.ruckuswireless.com/LTE/ruckuscloud-201901-lte-onlinehelp.pdf) | RUCKUS/CommScope | EN | RF, ENV, TRN | fetch | High (alarm chapter pp.163–184) | 30 named alarms in one ingest PDF with page numbers |
+| [Alcatel-Lucent 5620 SAM Alarm Reference R10.0](https://documentation.nokia.com/cgi-bin/dbaccessfilename.cgi/3HE06980AAAETQZZA01_V1_5620%20SAM%20Release%2010.0%20R5%20Alarm%20Reference.pdf) | ALU/Nokia | EN | RF, TRN | fetch | High (510+ alarm tables, ch.21) | THE per-alarm cause→action matrix: eNodeB, microwave, site router |
 | **H. Gap fill 3 — transport equipment docs** | | | | | | |
-| [SAF Tehnika Integra FODU manual (FCC)](https://fcc.report/FCC-ID/W9Z-INTEGRA5G8/6829870.pdf) | SAF Tehnika | EN | TRA, PWR | fetch | High (threshold matrix p.88) | Microwave alarm semantics, Set/Reset log, CLI diagnostics |
-| [Cambium PTP 820 User Guide R10.9](https://www.cambiumnetworks.com/wp-content/uploads/2019/09/PTP-820-User-Guide_phn-3963_008v001.pdf) | Cambium | EN | TRA | fetch (browser UA) | High | Microwave radio config + troubleshooting paths |
-| [Cambium PTP 820 MIB Reference R10.9](https://www.cambiumnetworks.com/wp-content/uploads/2019/09/PTP-820-Series-MIB-Reference-Guide_phn-3974_008v001.pdf) | Cambium | EN | TRA | fetch (browser UA) | High (alarm tables Ch.7 p.51) | Transport alarm dictionary w/ corrective actions |
-| [Cisco ASR 920 System Messages](https://www.cisco.com/c/dam/en/us/td/docs/routers/asr920/syslogs/ASR920-SysMsgs.pdf) | Cisco | EN | TRA | fetch (browser UA) | Med-high | Real syslog grammar (%LINK-3-UPDOWN) for site-router failure |
-| [Cisco ASR 920 Troubleshooting Aids](https://www.cisco.com/c/en/us/td/docs/routers/asr920/hardware/installation/guide-20SZ-M/b-asr-920-20SZ-M/troubleshooting_aids.pdf) | Cisco | EN | TRA, ENV, PWR | fetch (browser UA) | High (LED/alarm tables) | Router-level remediation + env voltage/temp thresholds |
+| [SAF Tehnika Integra FODU manual (FCC)](https://fcc.report/FCC-ID/W9Z-INTEGRA5G8/6829870.pdf) | SAF Tehnika | EN | TRN, PWR | fetch | High (threshold matrix p.88) | Microwave alarm semantics, Set/Reset log, CLI diagnostics |
+| [Cambium PTP 820 User Guide R10.9](https://www.cambiumnetworks.com/wp-content/uploads/2019/09/PTP-820-User-Guide_phn-3963_008v001.pdf) | Cambium | EN | TRN | fetch (browser UA) | High | Microwave radio config + troubleshooting paths |
+| [Cambium PTP 820 MIB Reference R10.9](https://www.cambiumnetworks.com/wp-content/uploads/2019/09/PTP-820-Series-MIB-Reference-Guide_phn-3974_008v001.pdf) | Cambium | EN | TRN | fetch (browser UA) | High (alarm tables Ch.7 p.51) | Transport alarm dictionary w/ corrective actions |
+| [Cisco ASR 920 System Messages](https://www.cisco.com/c/dam/en/us/td/docs/routers/asr920/syslogs/ASR920-SysMsgs.pdf) | Cisco | EN | TRN | fetch (browser UA) | Med-high | Real syslog grammar (%LINK-3-UPDOWN) for site-router failure |
+| [Cisco ASR 920 Troubleshooting Aids](https://www.cisco.com/c/en/us/td/docs/routers/asr920/hardware/installation/guide-20SZ-M/b-asr-920-20SZ-M/troubleshooting_aids.pdf) | Cisco | EN | TRN, ENV, PWR | fetch (browser UA) | High (LED/alarm tables) | Router-level remediation + env voltage/temp thresholds |
 
 Local verified copies already on disk (copy into fetch cache, do NOT commit): Ruckus 2019.01 PDF, ALU 5620 SAM PDF, SAF Integra PDF — paths in session tool-results dir `...\4bbefac1-...\tool-results\` (webfetch-1783165628533-3phu5v.pdf, webfetch-1783165657568-ol9mo8.pdf, webfetch-1783165391943-0i640u.pdf).
 
