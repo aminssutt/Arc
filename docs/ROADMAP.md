@@ -2,7 +2,7 @@
 
 > [!IMPORTANT]
 > **RAISE Summit — Vultr track** · Team of 5, fully parallel lanes
-> **Board:** https://github.com/users/vgtray/projects/1 · **Repo:** github.com/aminssutt/Arc (PUBLIC)
+> **Board:** https://github.com/users/aminssutt/projects/3 · **Repo:** github.com/aminssutt/Arc (PUBLIC)
 > Phase timings are relative to the hackathon window (T0 = start).
 
 Arc is a multi-agent **network operations agent for telecom site fault
@@ -178,6 +178,6 @@ runs on the simulator fallback and nothing breaks.
 
 ## Board
 
-https://github.com/users/vgtray/projects/1 — fields: **Status**, **Priority**
+https://github.com/users/aminssutt/projects/3 — fields: **Status**, **Priority**
 (P0/P1/P2), **Phase** (0-3), **Workstream**. Views: by Status (board), by
 Assignee (table), by Phase (table). Labels mirror workstream, phase, priority.
