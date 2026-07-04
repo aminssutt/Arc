@@ -12,10 +12,12 @@ technical documents.
 
 | # | Piece | Status | Owner |
 |---|---|---|---|
-| Registry | `data/corpus_sources.json` — `doc_id → {title, publisher, family, url, local_path, rights, page_hint}` | ✅ this feature | aminssutt |
-| Resolver | `agents/orchestration/citations.py` — `resolve_report_citations(citations)` → viewer-ready records | ✅ this feature | aminssutt |
-| Viewer wiring | render each citation as a link → open `open_url` (PDF `#page=N`) | ⏳ follow-up | daniwavy (web #50 / iOS) |
-| Event enrichment | attach resolved citations to `action_report_ready.data.report.citations` | ⏳ follow-up | simerugby (backend) — schema `data` is open |
+| Registry | `data/corpus_sources.json` — `doc_id → {title, publisher, family, url, local_path, rights, page_hint, aliases}` | ✅ done | aminssutt |
+| Resolver | `agents/orchestration/citations.py` — `resolve_report_citations` / `enrich_citations` → viewer-ready records | ✅ done | aminssutt |
+| Contract `page` | optional `page` on `Citation` + `RetrievedRef` (additive, backward-compatible) | ✅ done (L2) | aminssutt |
+| Retriever page capture | `_pack/_unpack_metadata` + `ingest_*` + `query` carry a per-chunk `page` | ✅ done (L2) | aminssutt (was vgtray's file) |
+| Event enrichment | `_assemble_report` runs `enrich_citations` → `action_report_ready.data.report.citations` carry `url`/`open_url`/`page`/`openable` (null `page` omitted to stay event-legal) | ✅ done | aminssutt (was simerugby's file) |
+| Viewer | `frontend/report-viewer.html` — self-contained NOC report; each citation clickable → opens the exact doc (PDF `#page=N`); `openable:false` greyed, no dead link | ✅ done | aminssutt (was daniwavy's) |
 
 ## Resolved citation record (the contract the viewer consumes)
 ```json

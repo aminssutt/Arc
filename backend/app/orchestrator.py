@@ -21,6 +21,8 @@ from typing import Any
 
 from contracts import Agent, AgentInput
 
+from agents.orchestration.citations import enrich_citations
+
 from backend.app.bus import EventBus
 from backend.app.seeds import Seeds
 
@@ -499,6 +501,9 @@ class Orchestrator:
             if key not in seen:
                 seen.add(key)
                 deduped.append(c)
+        # Citation drill-down: attach an openable source (title/url/open_url/page)
+        # to each citation while preserving doc_id + claim (event-schema required).
+        enriched = enrich_citations(deduped)
 
         honesty = []
         if inc["validation_result"] == "pivot":
@@ -523,5 +528,5 @@ class Orchestrator:
                          **({"conflict": "no crew available"} if not disp.get("booked", False) else {}),
                          "booking_id": f"BK-{inc['id'].rsplit('-', 1)[-1]}" if disp.get("booked") else ""},
             "honesty_notes": honesty,
-            "citations": deduped,
+            "citations": enriched,
         }

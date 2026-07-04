@@ -19,7 +19,10 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 from typing import Any
+
+_PAGE_HINT_RE = re.compile(r"\d+")
 
 _DEFAULT_REGISTRY = pathlib.Path(__file__).resolve().parents[2] / "data" / "corpus_sources.json"
 
@@ -58,6 +61,14 @@ def _page_of(citation: dict[str, Any]) -> int | None:
     return page if type(page) is int and page > 0 else None
 
 
+def _parse_page_hint(hint: Any) -> int | None:
+    """Extract the first page number from a registry hint ('p24', 'pp16/20')."""
+    if not isinstance(hint, str):
+        return None
+    m = _PAGE_HINT_RE.search(hint)
+    return int(m.group()) if m else None
+
+
 def _open_url(url: str | None, page: int | None) -> str | None:
     """Add a PDF page anchor so the viewer jumps to the exact page."""
     if not url:
@@ -92,6 +103,10 @@ def resolve_citation(citation: dict[str, Any], sources: dict[str, dict[str, Any]
             "openable": False, "unresolved": True,
         }
 
+    # Fall back to the registry's page hint when the citation carries no page.
+    if page is None:
+        page = _parse_page_hint(src.get("page_hint"))
+
     url = src.get("url")
     return {
         "doc_id": doc_id,
@@ -108,6 +123,31 @@ def resolve_citation(citation: dict[str, Any], sources: dict[str, dict[str, Any]
         "openable": bool(url),
         "unresolved": False,
     }
+
+
+def enrich_citations(
+    citations: list[dict[str, Any]],
+    sources: dict[str, dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Merge resolver fields ONTO each citation, preserving its original keys.
+
+    Use this at report-assembly time: the frozen event schema requires each
+    citation to keep ``doc_id`` + ``claim``, so we merge (``{**original,
+    **resolved}``) rather than replace -- the resolver adds ``title`` / ``url`` /
+    ``open_url`` / ``page`` / ``openable`` while ``claim`` survives. Order is
+    preserved and nothing is dropped (no dedup; the caller already deduped).
+    """
+    src = sources if sources is not None else load_sources()
+    out: list[dict[str, Any]] = []
+    for c in citations:
+        merged = {**c, **resolve_citation(c, src)}
+        # The event schema types `page` as integer; omit the key when unknown
+        # (a null `page` would violate the frozen contract). Viewer treats a
+        # missing page as "no page".
+        if merged.get("page") is None:
+            merged.pop("page", None)
+        out.append(merged)
+    return out
 
 
 def resolve_report_citations(
