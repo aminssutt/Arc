@@ -1,0 +1,235 @@
+[
+  {
+    "employee_id": "EMP-001", "name": "Nadia Cherif",
+    "role": "Ingénieure énergie / plant DC -48V", "status": "available",
+    "families": ["energy"], "skills": ["power", "rectifier", "battery"],
+    "seniority_start": "2018-03-01",
+    "resolved": [
+      {"date": "2026-02-11", "family": "energy", "code": "PWR-DC-UV", "equipment_class": "rectifier", "summary": "remplacement module Flatpack2"},
+      {"date": "2026-04-03", "family": "energy", "code": "PWR-RECT-FAIL", "equipment_class": "rectifier", "summary": "reset breaker + swap module"},
+      {"date": "2026-05-20", "family": "energy", "code": "PWR-DC-UV", "equipment_class": "rectifier", "summary": "diagnostic sag plant sous charge"}
+    ]
+  },
+  {
+    "employee_id": "EMP-002", "name": "Marc Delaunay",
+    "role": "Technicien énergie / batteries", "status": "available",
+    "families": ["energy"], "skills": ["power", "battery", "rectifier"],
+    "seniority_start": "2015-09-15",
+    "resolved": [
+      {"date": "2026-01-22", "family": "energy", "code": "PWR-BATT-DEGRADED", "equipment_class": "battery_string", "summary": "remplacement string VRLA"},
+      {"date": "2026-03-30", "family": "energy", "code": "PWR-BATT-DEGRADED", "equipment_class": "battery_string", "summary": "test décharge + capacité"}
+    ]
+  },
+  {
+    "employee_id": "EMP-003", "name": "Sofia Rahmani",
+    "role": "Ingénieure senior power plant", "status": "available",
+    "families": ["energy", "environment"], "skills": ["power", "rectifier", "battery", "thermal"],
+    "seniority_start": "2014-01-10",
+    "resolved": [
+      {"date": "2026-02-02", "family": "energy", "code": "PWR-GRID-LOSS", "equipment_class": "rectifier", "summary": "bascule genset + restauration mains"},
+      {"date": "2026-05-11", "family": "energy", "code": "PWR-DC-UV", "equipment_class": "rectifier", "summary": "audit holdup batteries"}
+    ]
+  },
+  {
+    "employee_id": "EMP-004", "name": "Thomas Berger",
+    "role": "Technicien énergie junior", "status": "available",
+    "families": ["energy"], "skills": ["power", "rectifier"],
+    "seniority_start": "2024-06-01",
+    "resolved": [
+      {"date": "2026-06-01", "family": "energy", "code": "PWR-DC-UV", "equipment_class": "rectifier", "summary": "assistance swap module (accompagné)"}
+    ]
+  },
+  {
+    "employee_id": "EMP-005", "name": "Aurélie Fontaine",
+    "role": "Spécialiste groupes électrogènes / genset", "status": "on_job",
+    "families": ["energy"], "skills": ["power", "genset", "rectifier"],
+    "seniority_start": "2017-11-20",
+    "resolved": [
+      {"date": "2026-03-14", "family": "energy", "code": "PWR-GRID-LOSS", "equipment_class": "rectifier", "summary": "réparation démarrage genset"}
+    ]
+  },
+  {
+    "employee_id": "EMP-006", "name": "Karim Haddad",
+    "role": "Technicien énergie / distribution DC", "status": "available",
+    "families": ["energy"], "skills": ["power", "rectifier", "fuse"],
+    "seniority_start": "2020-04-05",
+    "resolved": [
+      {"date": "2026-04-18", "family": "energy", "code": "PWR-FUSE-BLOWN", "equipment_class": "rectifier", "summary": "remplacement fusible NH00 + test branche"}
+    ]
+  },
+  {
+    "employee_id": "EMP-007", "name": "Léa Moreau",
+    "role": "Ingénieure environnement / HVAC", "status": "available",
+    "families": ["environment"], "skills": ["hvac", "thermal", "cooling"],
+    "seniority_start": "2019-02-11",
+    "resolved": [
+      {"date": "2026-02-27", "family": "environment", "code": "ENV-HVAC-FAIL", "equipment_class": "hvac", "summary": "remplacement compresseur HVAC"},
+      {"date": "2026-05-06", "family": "environment", "code": "ENV-THERMAL-SHUT", "equipment_class": "radio", "summary": "restauration refroidissement radios"}
+    ]
+  },
+  {
+    "employee_id": "EMP-008", "name": "Julien Petit",
+    "role": "Technicien CVC / thermique", "status": "available",
+    "families": ["environment"], "skills": ["hvac", "thermal"],
+    "seniority_start": "2016-07-01",
+    "resolved": [
+      {"date": "2026-01-30", "family": "environment", "code": "ENV-HVAC-FAIL", "equipment_class": "hvac", "summary": "recharge gaz + nettoyage condenseur"},
+      {"date": "2026-06-12", "family": "environment", "code": "ENV-THERMAL-SHUT", "equipment_class": "radio", "summary": "ventilation cabinet"}
+    ]
+  },
+  {
+    "employee_id": "EMP-009", "name": "Camille Rousseau",
+    "role": "Ingénieure sûreté site (intrusion/eau)", "status": "available",
+    "families": ["environment"], "skills": ["thermal", "water", "intrusion"],
+    "seniority_start": "2021-10-18",
+    "resolved": [
+      {"date": "2026-03-08", "family": "environment", "code": "ENV-WATER", "equipment_class": "cabinet", "summary": "étanchéité + capteur eau après tempête"}
+    ]
+  },
+  {
+    "employee_id": "EMP-010", "name": "Hugo Lemaire",
+    "role": "Technicien environnement junior", "status": "off",
+    "families": ["environment"], "skills": ["hvac"],
+    "seniority_start": "2025-01-06",
+    "resolved": []
+  },
+  {
+    "employee_id": "EMP-011", "name": "Inès Bouhri",
+    "role": "Ingénieure senior thermique data/télécom", "status": "available",
+    "families": ["environment", "rf"], "skills": ["thermal", "hvac", "radio"],
+    "seniority_start": "2013-05-22",
+    "resolved": [
+      {"date": "2026-04-25", "family": "environment", "code": "ENV-THERMAL-SHUT", "equipment_class": "radio", "summary": "diagnostic shutdown thermique radios secteur"}
+    ]
+  },
+  {
+    "employee_id": "EMP-012", "name": "Antoine Girard",
+    "role": "Ingénieur RF / antennes & feeders", "status": "available",
+    "families": ["rf"], "skills": ["rf", "antenna", "feeder"],
+    "seniority_start": "2017-03-30",
+    "resolved": [
+      {"date": "2026-02-14", "family": "rf", "code": "RF-VSWR-HIGH", "equipment_class": "feeder", "summary": "réparation feeder + connecteur corrodé"},
+      {"date": "2026-05-29", "family": "rf", "code": "RF-VSWR-HIGH", "equipment_class": "feeder", "summary": "test return-loss après foudre"}
+    ]
+  },
+  {
+    "employee_id": "EMP-013", "name": "Yasmine Toure",
+    "role": "Ingénieure RAN / cellules", "status": "available",
+    "families": ["rf"], "skills": ["rf", "radio", "antenna"],
+    "seniority_start": "2019-08-12",
+    "resolved": [
+      {"date": "2026-03-19", "family": "rf", "code": "RF-CELL-DOWN", "equipment_class": "radio", "summary": "reboot + remplacement unité radio secteur"},
+      {"date": "2026-06-05", "family": "rf", "code": "RF-CELL-DOWN", "equipment_class": "radio", "summary": "sleeping cell — analyse KPI"}
+    ]
+  },
+  {
+    "employee_id": "EMP-014", "name": "Paul Marchand",
+    "role": "Technicien RF / mesures", "status": "available",
+    "families": ["rf"], "skills": ["rf", "feeder", "gps"],
+    "seniority_start": "2015-12-01",
+    "resolved": [
+      {"date": "2026-04-09", "family": "rf", "code": "RF-GPS-LOSS", "equipment_class": "gps", "summary": "remplacement antenne GPS + holdover"}
+    ]
+  },
+  {
+    "employee_id": "EMP-015", "name": "Fatima Zohra",
+    "role": "Ingénieure senior RF", "status": "on_job",
+    "families": ["rf"], "skills": ["rf", "antenna", "feeder", "gps"],
+    "seniority_start": "2012-09-03",
+    "resolved": [
+      {"date": "2026-01-15", "family": "rf", "code": "RF-VSWR-HIGH", "equipment_class": "feeder", "summary": "campagne VSWR multi-sites"}
+    ]
+  },
+  {
+    "employee_id": "EMP-016", "name": "Olivier Blanc",
+    "role": "Technicien RF junior", "status": "available",
+    "families": ["rf"], "skills": ["rf", "antenna"],
+    "seniority_start": "2023-09-01",
+    "resolved": [
+      {"date": "2026-05-02", "family": "rf", "code": "RF-CELL-DOWN", "equipment_class": "radio", "summary": "assistance swap radio"}
+    ]
+  },
+  {
+    "employee_id": "EMP-017", "name": "Sarah Nguyen",
+    "role": "Ingénieure timing / GNSS", "status": "available",
+    "families": ["rf"], "skills": ["gps", "rf"],
+    "seniority_start": "2020-02-17",
+    "resolved": [
+      {"date": "2026-03-27", "family": "rf", "code": "RF-GPS-LOSS", "equipment_class": "gps", "summary": "récepteur GNSS + drift timing"}
+    ]
+  },
+  {
+    "employee_id": "EMP-018", "name": "David Lambert",
+    "role": "Ingénieur transport / backhaul fibre", "status": "available",
+    "families": ["transport"], "skills": ["transport", "backhaul", "fiber"],
+    "seniority_start": "2016-04-19",
+    "resolved": [
+      {"date": "2026-02-06", "family": "transport", "code": "TRN-BACKHAUL-DOWN", "equipment_class": "router", "summary": "réparation coupure fibre backhaul"},
+      {"date": "2026-05-16", "family": "transport", "code": "TRN-BACKHAUL-DOWN", "equipment_class": "router", "summary": "soudure fibre + test BFD"}
+    ]
+  },
+  {
+    "employee_id": "EMP-019", "name": "Emma Faure",
+    "role": "Ingénieure réseau / routeurs site", "status": "available",
+    "families": ["transport"], "skills": ["transport", "router"],
+    "seniority_start": "2018-11-08",
+    "resolved": [
+      {"date": "2026-03-21", "family": "transport", "code": "TRN-ROUTER-FAIL", "equipment_class": "router", "summary": "remplacement routeur site"}
+    ]
+  },
+  {
+    "employee_id": "EMP-020", "name": "Lucas Mercier",
+    "role": "Technicien transmission micro-ondes", "status": "available",
+    "families": ["transport"], "skills": ["transport", "microwave", "backhaul"],
+    "seniority_start": "2019-06-24",
+    "resolved": [
+      {"date": "2026-04-14", "family": "transport", "code": "TRN-DEGRADED", "equipment_class": "router", "summary": "réalignement lien micro-ondes / jitter"}
+    ]
+  },
+  {
+    "employee_id": "EMP-021", "name": "Chloé Dubois",
+    "role": "Ingénieure senior transport", "status": "available",
+    "families": ["transport"], "skills": ["transport", "backhaul", "fiber", "router", "microwave"],
+    "seniority_start": "2011-10-02",
+    "resolved": [
+      {"date": "2026-01-19", "family": "transport", "code": "TRN-BACKHAUL-DOWN", "equipment_class": "router", "summary": "coordination réparation fibre longue"},
+      {"date": "2026-06-08", "family": "transport", "code": "TRN-DEGRADED", "equipment_class": "router", "summary": "audit jitter/latence POP"}
+    ]
+  },
+  {
+    "employee_id": "EMP-022", "name": "Nicolas Roy",
+    "role": "Technicien transport junior", "status": "available",
+    "families": ["transport"], "skills": ["transport", "router"],
+    "seniority_start": "2024-02-12",
+    "resolved": []
+  },
+  {
+    "employee_id": "EMP-023", "name": "Manon Girard",
+    "role": "Ingénieure fibre / FTTx", "status": "off",
+    "families": ["transport"], "skills": ["fiber", "backhaul", "transport"],
+    "seniority_start": "2021-07-30",
+    "resolved": [
+      {"date": "2026-05-24", "family": "transport", "code": "TRN-BACKHAUL-DOWN", "equipment_class": "router", "summary": "réparation fibre secteur nord"}
+    ]
+  },
+  {
+    "employee_id": "EMP-024", "name": "Rachid Benali",
+    "role": "Chef d'équipe intervention multi-domaine", "status": "available",
+    "families": ["energy", "environment", "transport"], "skills": ["power", "hvac", "transport", "rectifier"],
+    "seniority_start": "2010-05-17",
+    "resolved": [
+      {"date": "2026-02-20", "family": "energy", "code": "PWR-GRID-LOSS", "equipment_class": "rectifier", "summary": "coordination panne majeure énergie"},
+      {"date": "2026-04-01", "family": "transport", "code": "TRN-BACKHAUL-DOWN", "equipment_class": "router", "summary": "coordination coupure backhaul"}
+    ]
+  },
+  {
+    "employee_id": "EMP-025", "name": "Valérie Simon",
+    "role": "Lead ingénierie RF + timing", "status": "available",
+    "families": ["rf"], "skills": ["rf", "antenna", "feeder", "gps", "radio"],
+    "seniority_start": "2009-03-11",
+    "resolved": [
+      {"date": "2026-03-05", "family": "rf", "code": "RF-VSWR-HIGH", "equipment_class": "feeder", "summary": "expertise VSWR + return loss"},
+      {"date": "2026-05-31", "family": "rf", "code": "RF-CELL-DOWN", "equipment_class": "radio", "summary": "diagnostic sleeping cell multi-secteur"}
+    ]
+  }
+]
