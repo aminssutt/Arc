@@ -103,7 +103,7 @@ contract) to approve before INT.1 wiring. This is the P0 blocker for the live ci
 
 ---
 
-## VultronRetriever: text-now / visual-later + doc_id namespace + corpus builder  [PROPOSED — revisit post Vultr workshop]
+## VultronRetriever: text-now / visual-later + doc_id namespace + corpus builder  [ADOPTED for demo (text) — visual upgrade path preserved; workshop can still overturn]
 
 **Date:** 2026-07-04 · **Author:** @vgtray (dev-backend) · **Source:** audit stage-A P1-2/3/4 (#80)
 
@@ -131,10 +131,18 @@ or citations won't resolve to a document on click.
 
 **Corpus builder plan (for #54).** Keep all three manifest shapes intact and adapt between them:
 1. `corpus_manifest.json` — **doc-level** `{doc_id, type, title, path, vendor, equipment_class, site_id, date, tags}` (loader output, data/schema.md §7).
-2. **Chunking adapter** (to code in #54) explodes each document into per-section chunks.
+2. **Chunking adapter** (landed: `agents/common/corpus_builder.py`) explodes each document into per-section chunks.
 3. Emits `ingest_manifest` **chunk-level** rows `{doc_id, title, section, path_or_text}` consumed by `retriever.ingest_manifest`.
 `DATA_MANIFEST.md` stays the human rights/sourcing table (not machine-consumed). The adapter is
 the single owner of the doc→section explosion.
 
-**Status:** PROPOSED — provisional; revisit after the Vultr workshop (visual-vs-text is the
-one decision that can flip `page` and the corpus indexing cost).
+**Status:** ADOPTED for demo (text) — visual upgrade path preserved; the Vultr workshop can
+still overturn (visual-vs-text is the one decision that can flip `page` and the corpus
+indexing cost).
+
+**2026-07-04 — chunking adapter landed** (`agents/common/corpus_builder.py`): converts the
+doc-level `corpus_manifest.json` into chunk-level `ingest_manifest` rows (header/`Section N`/
+numbered splitting, ~1500-char paragraph fallback), unblocking the corpus build (#54). The
+retriever smoke fixtures adopted the canonical S/V/O/I namespace
+(`eltek-flatpack2-om-manual`→`V2`, `site-safety-dc-power-plant`→`UFC-3-540-07`); the
+Correlation/Root-Cause harness mocks follow suit.

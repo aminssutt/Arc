@@ -32,15 +32,18 @@ _SMOKE_COLLECTION = "arc_correlation"
 
 # --------------------------------------------------------------------------- #
 # Offline retriever (mock mode) — canned, keyword-routed corroborating refs.
-# doc_ids mirror agents/common/fixtures/manifest.json so mock citations look
-# exactly like real-corpus ones.
+# doc_ids are canonical S/V/O/I (validation/DATA_MANIFEST.md), mirroring
+# agents/common/fixtures/manifest.json so mock citations look exactly like
+# real-corpus ones: V2 = Eltek controller manual, UFC-3-540-07 = DC-plant
+# safety, I2 = past outage report (VSWR-vs-DC misdiagnosis; RF grounding is
+# offline eval R2 only).
 # --------------------------------------------------------------------------- #
 class _OfflineRetriever:
     async def query(self, text: str, top_k: int = 4) -> list[RetrievedRef]:
         t = text.lower()
         if "vswr" in t or "feeder" in t or "return-loss" in t or "return loss" in t:
             ref = RetrievedRef(
-                doc_id="site-outage-out-045",
+                doc_id="I2",
                 section="VSWR vs DC misdiagnosis",
                 snippet=(
                     "A high VSWR / return-loss fault on the feeder can masquerade as a "
@@ -49,7 +52,7 @@ class _OfflineRetriever:
             )
         elif "batt" in t:
             ref = RetrievedRef(
-                doc_id="site-safety-dc-power-plant",
+                doc_id="UFC-3-540-07",
                 section="Battery string autonomy",
                 snippet=(
                     "A degraded VRLA battery_string shortens -48V backup autonomy; "
@@ -58,7 +61,7 @@ class _OfflineRetriever:
             )
         else:
             ref = RetrievedRef(
-                doc_id="eltek-flatpack2-om-manual",
+                doc_id="V2",
                 section="3.2 DC Undervoltage Alarm",
                 snippet=(
                     "A -48V DC plant undervoltage points at the rectifier module feeding "
