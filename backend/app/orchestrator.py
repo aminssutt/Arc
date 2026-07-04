@@ -40,7 +40,7 @@ RESOLVED = "resolved"
 TRANSITIONS: dict[str, set[str]] = {
     IDLE: {FAULT_TRIGGERED},
     FAULT_TRIGGERED: {PHASE1},
-    PHASE1: {AWAITING, PHASE2},          # PHASE2 direct only on the pivot re-entry
+    PHASE1: {AWAITING, PHASE2, RESOLVED},  # PHASE2 on pivot re-entry; RESOLVED = degraded terminal (INT.5)
     AWAITING: {PHASE2, PHASE1},          # confirmed -> phase2 · pivot -> phase1
     PHASE2: {REPORT_READY},
     REPORT_READY: {RESOLVED},
@@ -219,12 +219,14 @@ class Orchestrator:
                     "measurements": (inc["validation"] or {}).get("measurements", [])}
         corr = await self._run_agent("correlation", 1, base_ctx)
         if corr is None:
+            await self._terminate_degraded_phase1("correlation")  # never leave the incident stuck (INT.5)
             return
         for f in corr.payload.get("added_failures", []):
             inc["failures"].append(self._assign_id(f))
 
         rc = await self._run_agent("root_cause", 1, {**base_ctx, "correlation": corr.payload.get("correlation", {})})
         if rc is None:
+            await self._terminate_degraded_phase1("root_cause")  # never leave the incident stuck (INT.5)
             return
         diagnostic = self._normalize_diagnostic(rc.payload.get("diagnostic", {}))
         inc["diagnostic"] = diagnostic
@@ -335,6 +337,23 @@ class Orchestrator:
             "summary": f"action report issued ({outcome}); top action: "
                        f"{(inc['remediation'].get('action_hints') or [{}])[0].get('action', 'n/a')}",
             "outcome": outcome,
+        })
+        self._transition(RESOLVED)
+        self._transition(IDLE)
+        if self.on_incident_closed:
+            self.on_incident_closed(inc["site"].get("site_id", ""))
+
+    # -- degraded terminal path, phase 1 (INT.5 #51): same guarantee as #97 -----
+    async def _terminate_degraded_phase1(self, failed_agent: str) -> None:
+        """A phase-1 agent returned nothing (failed/timed out): no diagnosis
+        exists, so no action report is possible — but the incident still closes
+        with incident_resolved (outcome 'downgraded') so no consumer hangs.
+        The agent_completed error/timeout event before this names the cause."""
+        inc = self.incident
+        self.bus.emit(inc["id"], "incident_resolved", {
+            "summary": f"incident closed DEGRADED: phase-1 agent '{failed_agent}' "
+                       "unavailable — no diagnosis produced, manual triage required",
+            "outcome": "downgraded",
         })
         self._transition(RESOLVED)
         self._transition(IDLE)
