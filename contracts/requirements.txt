@@ -1,0 +1,3 @@
+# Frozen contracts runtime dependency.
+# pydantic v2 -- latest stable at coding date (2026-07-04), zero known CVE (pip-audit clean).
+pydantic==2.13.4
