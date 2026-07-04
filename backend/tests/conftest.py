@@ -1,4 +1,11 @@
 import json
+import os
+
+# Tests NEVER call the network or spend shared credits: blank the Vultr keys
+# BEFORE any backend import (settings' .env loader respects existing env), so
+# _wire_real_agents takes the offline/dummy path even on a keyed machine.
+os.environ["VULTR_INFERENCE_API_KEY"] = ""
+os.environ["VULTR_API_KEY"] = ""
 
 import pytest
 from jsonschema import Draft202012Validator
