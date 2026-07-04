@@ -17,6 +17,8 @@ from backend.app.seeds import load_seeds
 from backend.app.settings import settings
 from backend.app.tools import CostEngineTool, CrewDispatchTool, InventoryLookupTool
 from backend.app.correlation_adapter import CorrelationAgentAdapter
+from agents.responder_matching import ResponderMatchingAgent
+
 from backend.app.remediation_adapter import RemediationAgentAdapter
 from backend.app.root_cause_adapter import RootCauseAgentAdapter
 from backend.app.validation_adapter import ValidationAgentAdapter
@@ -87,6 +89,7 @@ async def lifespan(app: FastAPI):
     registry["validation"] = ValidationAgentAdapter(app.state.seeds)          # aminssutt's AGA.1
     registry["cost_inventory_dispatch"] = CostInventoryDispatchAgent(         # aminssutt's AGA.3
         cost, inventory, dispatch)
+    registry["responder_matching"] = ResponderMatchingAgent()                # aminssutt's employee-matching (deterministic, no Vultr)
     _wire_real_agents(app, registry)  # INT.1 (#47) + INT.3 (#49): real correlation/root_cause/remediation
     llm = getattr(app.state, "llm_clients", None)
     if llm is not None:

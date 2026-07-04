@@ -59,7 +59,8 @@ def fault_from_context(data: AgentInput) -> dict[str, Any]:
     return {
         "family": data.failure_family,
         "equipment_class": correlation.get("equipment_class") or primary.get("equipment_class"),
-        "code": primary.get("code") or ctx.get("code"),
+        # canonical alarm_code first (matcher keys on it); raw trap only as fallback.
+        "code": primary.get("alarm_code") or primary.get("code") or ctx.get("code"),
         "difficulty": ctx.get("difficulty") or primary.get("difficulty"),
         "region": ctx.get("region") or ctx.get("site", {}).get("region") or correlation.get("region"),
     }
