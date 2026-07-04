@@ -1,0 +1,33 @@
+{
+  "incident_id": "INC-DEMO-CORR-001",
+  "site_id": "SITE-PAR-014",
+  "failure_family": "energy",
+  "context": {
+    "fault_event": {
+      "site": {
+        "id": "SITE-PAR-014",
+        "name": "Paris Nord 14",
+        "lat": 48.8988,
+        "lon": 2.3554,
+        "address": "12 Rue de la Chapelle, 75018 Paris"
+      },
+      "family": "energy",
+      "failures": [
+        {
+          "id": "F1",
+          "code": "PWR-DC-UV",
+          "severity": "critical",
+          "equipment": "dc_plant",
+          "metric": "dc_plant_voltage_v",
+          "value": 44.1,
+          "first_seen": "2026-07-04T09:12:00Z"
+        }
+      ],
+      "trigger": {
+        "rule": "undervoltage_major",
+        "debounce_s": 60,
+        "triggered_at": "2026-07-04T09:20:00Z"
+      }
+    }
+  }
+}
