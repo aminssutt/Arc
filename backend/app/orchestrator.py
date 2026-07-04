@@ -223,6 +223,8 @@ class Orchestrator:
             "failures": inc["failures"],
             "validations": body["validations"],
             "measurements": body.get("measurements", []),
+            "diagnostic": inc["diagnostic"],      # load-bearing failure + top cause
+            "validation_event": body,             # the raw frozen-contract POST body
         })
         result = (out.payload.get("result") if out else None) or "confirmed"
         inc["validation_result"] = result
