@@ -4,6 +4,8 @@
 orchestrator import (issue #7 / P0.7). Change after phase 0 = PR + producer
 **and** consumers approve (per `docs/ROADMAP.md`, no-conflict rules).
 
+> Requires Python ≥ 3.12 — see root README / `.python-version`.
+
 ## What's frozen here
 - `AgentInput` / `AgentOutput` — the agent I/O envelope. `AgentOutput` carries
   the `retrieved_refs`, the `citations` trail, and a `confidence` score, and is
