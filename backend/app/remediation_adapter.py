@@ -12,10 +12,12 @@ input (diagnostic -> top_cause) and translates the output.
 Requires the shared Vultr client + retriever (fakes in tests). Backend lane —
 ``/agents`` is untouched.
 """
+import asyncio
 from typing import Any
 
 from contracts import AgentInput, AgentOutput
 
+from agents.common.vultr import VultrError
 from agents.remediation import RemediationAgent, RemediationError
 
 
@@ -38,14 +40,22 @@ class RemediationAgentAdapter:
         )
         try:
             out = await self._inner.run(inner_input)
-        except RemediationError:
-            # Corpus can't support a safe cited procedure — surface as a graceful
-            # empty remediation; the orchestrator emits a normal (thin) report
-            # rather than crashing the run.
+        except (RemediationError, VultrError, asyncio.TimeoutError) as exc:
+            # No safe cited procedure available — a missing-corpus RemediationError,
+            # an LLM failure/truncation (VultrError), or a timeout. Degrade to a
+            # single explicit manual-intervention step (NEVER empty steps: the frozen
+            # events.schema requires procedure.steps minItems>=1) instead of letting
+            # the error escape and hang the run.
             return AgentOutput(
                 incident_id=data.incident_id, agent=self.name,
-                summary="remediation unavailable: corpus lacks a cited safe procedure",
-                payload={"procedure": {"title": top_cause["label"], "steps": [], "safety": []},
+                summary=f"remediation unavailable ({type(exc).__name__}): "
+                        "manual intervention required",
+                payload={"procedure": {
+                             "title": top_cause["label"],
+                             "steps": [{"n": 1,
+                                        "text": "Manual intervention required — see diagnostic",
+                                        "citations": []}],
+                             "safety": []},
                          "parts": [], "action_hints": []},
                 retrieved_refs=[], citations=[], confidence=0.2,
             )
