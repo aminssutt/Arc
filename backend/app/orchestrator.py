@@ -151,24 +151,29 @@ class Orchestrator:
         return [cls._event_citation(c) for c in (citations or [])]
 
     @classmethod
+    def _cite(cls, citations: Any) -> list[dict[str, Any]]:
+        """Event-legal citations, enriched with an openable source (drill-down)."""
+        return enrich_citations(cls._event_citations(citations))
+
+    @classmethod
     def _normalize_diagnostic(cls, diagnostic: dict[str, Any]) -> dict[str, Any]:
         out = dict(diagnostic)
-        out["causes"] = [{**c, "citations": cls._event_citations(c.get("citations"))}
+        out["causes"] = [{**c, "citations": cls._cite(c.get("citations"))}
                          for c in diagnostic.get("causes", [])]
         if diagnostic.get("urgency"):
             u = dict(diagnostic["urgency"])
             if u.get("citations"):
-                u["citations"] = cls._event_citations(u["citations"])
+                u["citations"] = cls._cite(u["citations"])
             out["urgency"] = u
         return out
 
     @classmethod
     def _normalize_procedure(cls, procedure: dict[str, Any]) -> dict[str, Any]:
         out = dict(procedure)
-        out["steps"] = [{**s, "citations": cls._event_citations(s.get("citations"))}
+        out["steps"] = [{**s, "citations": cls._cite(s.get("citations"))}
                         for s in procedure.get("steps", [])]
         if procedure.get("safety"):
-            out["safety"] = [{**s, "citations": cls._event_citations(s.get("citations"))}
+            out["safety"] = [{**s, "citations": cls._cite(s.get("citations"))}
                              for s in procedure["safety"]]
         return out
 
