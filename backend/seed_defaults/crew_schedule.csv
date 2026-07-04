@@ -1,0 +1,4 @@
+crew_id,name,base_id,region,skills,shift_start,shift_end,status,eta_min
+CREW-IDF-3,Dupont / Mercier,WH-PAR-CENTRAL,IDF-North,power|transport,06:00,18:00,available,45
+CREW-IDF-5,Nguyen / Laurent,WH-PAR-NORTH,IDF-North,rf|power,08:00,20:00,on_job,60
+CREW-IDF-7,Bacar / Simon,WH-PAR-CENTRAL,IDF-East,power|rf|transport,06:00,18:00,available,55

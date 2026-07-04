@@ -1,0 +1,3 @@
+plant_id,site_id,nominal_voltage_v,low_voltage_alarm_v,rectifier_count,rectifier_capacity_a,battery_string_count,battery_ah,design_autonomy_min
+PP-PAR-014,SITE-PAR-014,48.0,45.0,4,50,2,190,240
+PP-PAR-021,SITE-PAR-021,48.0,45.0,3,50,1,150,180
