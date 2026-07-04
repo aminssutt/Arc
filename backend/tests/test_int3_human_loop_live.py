@@ -24,7 +24,7 @@ from backend.app.validation_adapter import ValidationAgentAdapter
 from backend.tests.conftest import assert_contract
 
 FAULT_FAILURES = [{"code": "PWR-DC-UV", "severity": "critical",
-                   "equipment": "EQ-PAR-014-RECT-1", "metric": "dc_plant_voltage_v",
+                   "equipment": "EQ-PAR-014-RECT-1", "metric": "dc_voltage_v",
                    "value": 44.0, "first_seen": "2026-07-05T09:00:00Z"}]
 TRIGGER = {"rule": "PWR-DC-UV", "debounce_s": 60, "triggered_at": "2026-07-05T09:01:01Z"}
 
@@ -37,7 +37,7 @@ SAFETY_REF = RetrievedRef(doc_id="site-safety-dc-power-plant", section="2 Lockou
 class FakeRootCauseVultr:
     async def structured_json(self, prompt, *, schema=None, max_tokens=512, temperature=0.0):
         return {"ranked_causes": [{"cause": "rectifier module failure", "confidence": 0.86,
-                                   "citation_refs": [0], "expected_measurement": "dc_plant_voltage_v"}],
+                                   "citation_refs": [0], "expected_measurement": "dc_voltage_v"}],
                 "followup_query": "", "missing_doc": None}
     async def aclose(self): pass
 
@@ -84,7 +84,7 @@ def _validation_body(orch, value):
         "incident_id": orch.incident["id"], "client_event_id": "int3-1",
         "submitted_at": "2026-07-05T09:33:00Z",
         "validations": [{"failure_id": f["id"], "verdict": "real"} for f in orch.incident["failures"]],
-        "measurements": [{"metric": "dc_plant_voltage_v", "point": "busbar", "value": value, "unit": "V"}],
+        "measurements": [{"metric": "dc_voltage_v", "point": "busbar", "value": value, "unit": "V"}],
     }
 
 
@@ -94,7 +94,7 @@ async def test_confirm_run_completes_through_action_report_with_citations(
     await orch.handle_fault("SITE-PAR-014", "energy", FAULT_FAILURES, TRIGGER)
     await orch.join()
 
-    await orch.handle_validation(_validation_body(orch, value=43.9))       # < 45 => confirmed
+    await orch.handle_validation(_validation_body(orch, value=-43.9))       # < 45 => confirmed
     await orch.join()
 
     reports = [e for e in bus.history if e["type"] == "action_report_ready"]
@@ -116,7 +116,7 @@ async def test_pivot_run_visibly_reruns_phase1(bus, seeds, tools, tmp_path, even
     await orch.handle_fault("SITE-PAR-014", "energy", FAULT_FAILURES, TRIGGER)
     await orch.join()
 
-    await orch.handle_validation(_validation_body(orch, value=53.9))       # normal => contradicted
+    await orch.handle_validation(_validation_body(orch, value=-53.9))       # normal => contradicted
     await orch.join()
 
     pivots = [e for e in bus.history if e["type"] == "phase_started" and e["data"]["cause"] == "pivot"]

@@ -32,13 +32,15 @@ async def _run_confirm_to_awaiting(client):
 
 
 def _body(orch, verdicts, cid="api-1"):
+    import itertools
     return {
         "incident_id": orch.incident["id"],
         "client_event_id": cid,
         "submitted_at": "2026-07-05T09:33:00Z",
+        # every detected failure gets a verdict (cycle a short list over all)
         "validations": [{"failure_id": f["id"], "verdict": v}
-                        for f, v in zip(orch.incident["failures"], verdicts)],
-        "measurements": [{"metric": "dc_plant_voltage_v", "point": "busbar", "value": 43.9, "unit": "V"}],
+                        for f, v in zip(orch.incident["failures"], itertools.cycle(verdicts))],
+        "measurements": [{"metric": "dc_voltage_v", "point": "busbar", "value": -43.9, "unit": "V"}],
     }
 
 

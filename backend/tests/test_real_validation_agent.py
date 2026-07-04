@@ -14,9 +14,9 @@ from backend.app.validation_adapter import ValidationAgentAdapter
 
 from backend.tests.conftest import assert_contract
 
-FAULT_FAILURES = [{"code": "PWR-DC-UV", "severity": "critical",
-                   "equipment": "EQ-PAR-014-RECT-1", "metric": "dc_plant_voltage_v",
-                   "value": 44.0, "first_seen": "2026-07-05T09:00:00Z"}]
+FAULT_FAILURES = [{"code": "DC_UNDERVOLTAGE", "alarm_code": "PWR-DC-UV", "severity": "critical",
+                   "equipment": "busbar", "metric": "dc_voltage_v",
+                   "value": -44.0, "first_seen": "2026-07-05T09:00:00Z"}]
 TRIGGER = {"rule": "PWR-DC-UV", "debounce_s": 60, "triggered_at": "2026-07-05T09:01:01Z"}
 
 
@@ -33,17 +33,17 @@ def _body(orch, verdicts, value):
         "submitted_at": "2026-07-05T09:33:00Z",
         "validations": [{"failure_id": f["id"], "verdict": v}
                         for f, v in zip(orch.incident["failures"], verdicts)],
-        "measurements": [{"metric": "dc_plant_voltage_v", "point": "busbar",
+        "measurements": [{"metric": "dc_voltage_v", "point": "busbar",
                           "value": value, "unit": "V"}],
     }
 
 
 async def test_real_agent_confirms_on_abnormal_measurement(bus, seeds, tools, tmp_path, event_validator):
     orch = _orch(bus, seeds, tools, tmp_path)
-    await orch.handle_fault("SITE-PAR-014", "energy", FAULT_FAILURES, TRIGGER)
+    await orch.handle_fault("PAR-021-NORD", "energy", FAULT_FAILURES, TRIGGER)
     await orch.join()
 
-    await orch.handle_validation(_body(orch, ["real"], value=43.9))  # < 45.0 => fault real
+    await orch.handle_validation(_body(orch, ["real"], value=-43.9))  # |v| < 45.0 => fault real
     await orch.join()
 
     vr = [e for e in bus.history if e["type"] == "validation_result"][0]
@@ -55,18 +55,18 @@ async def test_real_agent_confirms_on_abnormal_measurement(bus, seeds, tools, tm
 
 async def test_real_agent_pivots_on_normal_measurement(bus, seeds, tools, tmp_path, event_validator):
     orch = _orch(bus, seeds, tools, tmp_path)
-    await orch.handle_fault("SITE-PAR-014", "energy", FAULT_FAILURES, TRIGGER)
+    await orch.handle_fault("PAR-021-NORD", "energy", FAULT_FAILURES, TRIGGER)
     await orch.join()
 
     # Technician says "real" but MEASURES a healthy plant: the real agent trusts
     # the measurement (the dummy would have confirmed) — the telemetry-lied beat.
-    await orch.handle_validation(_body(orch, ["real"], value=53.9))
+    await orch.handle_validation(_body(orch, ["real"], value=-53.9))
     await orch.join()
 
     vr = [e for e in bus.history if e["type"] == "validation_result"][0]
     assert vr["data"]["result"] == "pivot"
     assert vr["data"]["contradictions"] == [
-        {"failure_id": "F1", "telemetry": 44.0, "measured": 53.9, "unit": "V"}]
+        {"failure_id": "F1", "telemetry": -44.0, "measured": -53.9, "unit": "V"}]
     pivot_restarts = [e for e in bus.history
                       if e["type"] == "phase_started" and e["data"]["cause"] == "pivot"]
     assert len(pivot_restarts) == 1

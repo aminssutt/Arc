@@ -1,0 +1,7 @@
+{"ts": "2026-07-05T09:00:00Z", "site_id": "PAR-021-NORD", "signal": "module_status", "value": 0, "equipment_id": "EQ-PAR-021N-RECT-2", "trap": "alarmMajorRectifier"}
+{"ts": "2026-07-05T09:00:30Z", "site_id": "PAR-021-NORD", "signal": "dc_voltage_v", "value": -53.8, "equipment_id": "busbar"}
+{"ts": "2026-07-05T09:00:31Z", "site_id": "PAR-021-NORD", "signal": "module_status", "value": 0, "equipment_id": "EQ-PAR-021N-RECT-2", "trap": "alarmMajorRectifier"}
+{"ts": "2026-07-05T09:12:00Z", "site_id": "PAR-021-NORD", "signal": "dc_voltage_v", "value": -47.0, "equipment_id": "busbar"}
+{"ts": "2026-07-05T09:19:00Z", "site_id": "PAR-021-NORD", "signal": "dc_voltage_v", "value": -44.9, "equipment_id": "busbar", "trap": "DC_UNDERVOLTAGE"}
+{"ts": "2026-07-05T09:20:01Z", "site_id": "PAR-021-NORD", "signal": "dc_voltage_v", "value": -44.8, "equipment_id": "busbar", "trap": "DC_UNDERVOLTAGE"}
+{"ts": "2026-07-05T09:22:00Z", "site_id": "PAR-021-NORD", "signal": "temp_c", "value": 38.5, "equipment_id": "cabinet"}

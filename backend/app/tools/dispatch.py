@@ -18,12 +18,17 @@ class CrewDispatchTool:
         self._seeds = seeds
         self._booked: set[str] = set()
 
+    # Family->skill maps in agents say "power"; the seeded crews carry the
+    # canonical "dc_power" (schema §5). Normalize here, in the tool.
+    _SKILL_ALIASES = {"power": "dc_power"}
+
     async def __call__(self, payload: DispatchRequest) -> DispatchBooking:
         site = self._seeds.sites.get(payload.site_id, {})
         region = site.get("region", "")
+        skill = self._SKILL_ALIASES.get(payload.skill, payload.skill)
         candidates = [
             c for c in self._seeds.crew_schedule.values()
-            if c["region"] == region and payload.skill in c["skills_list"] and c["status"] == "available"
+            if c["region"] == region and skill in c["skills_list"] and c["status"] == "available"
         ]
         if not candidates:
             return DispatchBooking(incident_id=payload.incident_id, crew_id="",

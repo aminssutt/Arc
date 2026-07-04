@@ -28,7 +28,7 @@ class InventoryLookupTool:
                 part_number=part,
                 in_stock=in_stock,
                 quantity=row["stock_qty"],
-                warehouse_id=row["warehouse_id"],
+                warehouse_id=row["warehouse_id"],  # unit_price_usd stays on the seed row
                 eta_hours=None if in_stock else float(row["lead_time_h"]),
             ))
         return InventoryMatch(incident_id=payload.incident_id, matches=lines)
