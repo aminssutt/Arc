@@ -1,0 +1,34 @@
+{
+  "incident_id": "INC-DEMO-001",
+  "site_id": "PAR-021-NORD",
+  "failure_family": "energy",
+  "context": {
+    "top_cause": {
+      "failure_id": "F2",
+      "label": "DC undervoltage (rectifier module failure)",
+      "signature": {
+        "metric": "dc_voltage_v",
+        "point": "busbar",
+        "unit": "V",
+        "abnormal_when": "gte",
+        "threshold": -47.0,
+        "normal_envelope": [-57.0, -40.5],
+        "citation": {"doc_id": "etsi-en-300-132-2", "section": "-48V DC input envelope"}
+      }
+    },
+    "validation_event": {
+      "incident_id": "INC-DEMO-001",
+      "client_event_id": "evt-confirm-001",
+      "submitted_at": "2026-07-05T09:31:00Z",
+      "technician": {"id": "tech-7", "name": "Field Tech"},
+      "validations": [
+        {"failure_id": "F1", "verdict": "real", "note": "module LED dark"},
+        {"failure_id": "F2", "verdict": "real", "note": "plant on batteries"},
+        {"failure_id": "F3", "verdict": "real", "note": "cabinet warm"}
+      ],
+      "measurements": [
+        {"metric": "dc_voltage_v", "point": "busbar", "value": -44.8, "unit": "V"}
+      ]
+    }
+  }
+}
