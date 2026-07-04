@@ -1,0 +1,46 @@
+# CODEOWNERS — review routing for Arc
+# Every directory maps to its owner. Later matches take precedence over earlier
+# ones, so the /agents/* split lines below override the broad /agents rule.
+# See docs/ROADMAP.md ("Directories & ownership") for the source of truth.
+
+# Repo root & meta
+*                       @vgtray
+/.github/               @aminssutt
+/README.md              @vgtray
+/.gitignore             @aminssutt
+
+# Docs & roadmap
+/docs/                  @vgtray
+
+# Contracts — FROZEN after phase 0. Change = PR + Discord ping + producer AND
+# consumers approve. Producer is simerugby; agent/tool interface is vgtray.
+/contracts/             @simerugby @vgtray
+
+# Data — shared, one owner per file (announced on Discord). Schema is aminssutt.
+/data/                  @simerugby @vgtray @aminssutt
+/data/schema.md         @aminssutt
+
+# Backend — FastAPI, watchdog, SSE, push, intake, tools, runtime, loaders
+/backend/               @simerugby
+
+# Frontend (Next.js control-room web) vs iOS (SwiftUI app) — both daniwavy5032
+/frontend/              @daniwavy5032
+/ios/                   @daniwavy5032
+
+# Design — direction, tokens, component specs, schematic, iOS screens
+/design/                @designspear-epic
+
+# Agents — broad rule (both agentic devs), then per-directory split.
+/agents/                @vgtray @aminssutt
+
+# vgtray's agents + shared clients
+/agents/correlation/    @vgtray
+/agents/root_cause/     @vgtray
+/agents/common/vultr.py     @vgtray
+/agents/common/retriever.py @vgtray
+
+# aminssutt's agents
+/agents/validation/     @aminssutt
+/agents/remediation/    @aminssutt
+/agents/cost_inventory/ @aminssutt
+/agents/orchestration/  @aminssutt
