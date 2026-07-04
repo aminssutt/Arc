@@ -61,3 +61,6 @@ Packages/
 # OS
 .DS_Store
 Thumbs.db
+
+# Playwright MCP browser artifacts
+.playwright-mcp/
