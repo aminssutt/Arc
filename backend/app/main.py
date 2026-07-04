@@ -37,14 +37,15 @@ def _wire_real_agents(app: FastAPI, registry: dict) -> None:
     crash). With the key set, both phases are zero-mock and the report carries a
     real citation trail.
     """
+    seeds = app.state.seeds
     llm = _build_llm_clients()
     if llm is None:
-        registry["correlation"] = CorrelationAgentAdapter()
+        registry["correlation"] = CorrelationAgentAdapter(seeds=seeds)
         logger.warning("INT.1/3: no Vultr key — Correlation real (offline); Root-Cause/Remediation stay dummy")
         return
     vultr, retriever = llm
     app.state.llm_clients = llm
-    registry["correlation"] = CorrelationAgentAdapter(vultr, retriever)
+    registry["correlation"] = CorrelationAgentAdapter(vultr, retriever, seeds=seeds)
     registry["root_cause"] = RootCauseAgentAdapter(vultr, retriever)
     registry["remediation"] = RemediationAgentAdapter(vultr, retriever)
     logger.info("INT.1/3: wired REAL correlation + root_cause + remediation (Vultr configured)")
