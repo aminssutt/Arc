@@ -1,6 +1,7 @@
 """Arc backend app factory (BE.1). Boot: `python -m uvicorn backend.app.main:app`
 from the repo root (or `python backend/run.py`). Settings via env only.
 """
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -13,8 +14,53 @@ from backend.app.push_service import PushService
 from backend.app.seeds import load_seeds
 from backend.app.settings import settings
 from backend.app.tools import CostEngineTool, CrewDispatchTool, InventoryLookupTool
+from backend.app.correlation_adapter import CorrelationAgentAdapter
+from backend.app.root_cause_adapter import RootCauseAgentAdapter
 from backend.app.validation_adapter import ValidationAgentAdapter
 from backend.app.watchdog import Watchdog
+
+logger = logging.getLogger("arc.backend")
+
+
+def _wire_phase1_agents(app: FastAPI, registry: dict) -> None:
+    """INT.1 (#47): swap dummy phase-1 agents for the real correlation + root_cause.
+
+    Correlation runs offline (deterministic plan), so it always goes real.
+    Root-Cause REQUIRES the shared Vultr client + retriever; it goes real only
+    when a Vultr key is configured, so the backend boots everywhere (no key ->
+    Correlation real + dummy Root-Cause, never a crash). With the key set, the
+    phase-1 path is zero-mock and diagnostic_ready carries real citations.
+    """
+    llm = _build_llm_clients()
+    if llm is None:
+        registry["correlation"] = CorrelationAgentAdapter()
+        logger.warning("INT.1: no Vultr key — Correlation real (offline), Root-Cause stays dummy")
+        return
+    vultr, retriever = llm
+    app.state.llm_clients = llm
+    registry["correlation"] = CorrelationAgentAdapter(vultr, retriever)
+    registry["root_cause"] = RootCauseAgentAdapter(vultr, retriever)
+    logger.info("INT.1: phase-1 wired to REAL correlation + root_cause (Vultr configured)")
+
+
+def _build_llm_clients():
+    """(VultrClient, VultronRetriever) when a Vultr key is set, else None.
+
+    Construction raises without a key (secret lives in the local .env only), so
+    any failure degrades gracefully to the dummy path rather than breaking boot.
+    """
+    import os
+
+    if not (os.getenv("VULTR_INFERENCE_API_KEY") or os.getenv("VULTR_API_KEY")):
+        return None
+    try:
+        from agents.common.retriever import VultronRetriever
+        from agents.common.vultr import VultrClient
+
+        return VultrClient(), VultronRetriever(os.getenv("ARC_CORPUS_COLLECTION", "arc-corpus"))
+    except Exception as exc:  # noqa: BLE001 - never break boot on LLM wiring
+        logger.warning("INT.1: Vultr client construction failed (%s) — using dummy Root-Cause", exc)
+        return None
 
 
 @asynccontextmanager
@@ -34,6 +80,7 @@ async def lifespan(app: FastAPI):
     registry = default_registry(cost, inventory, dispatch)
     # REAL agents replace dummies here as their lanes land (registry handoff):
     registry["validation"] = ValidationAgentAdapter(app.state.seeds)  # aminssutt's AGA.1
+    _wire_phase1_agents(app, registry)                                # INT.1 (#47)
     orchestrator = Orchestrator(app.state.bus, app.state.seeds, registry,
                                 push, agent_timeout_s=settings.agent_timeout_s)
     watchdog = Watchdog(app.state.seeds, orchestrator.handle_fault, orchestrator.add_failures)
@@ -41,6 +88,12 @@ async def lifespan(app: FastAPI):
     app.state.orchestrator = orchestrator
     app.state.watchdog = watchdog
     yield
+
+    for client in getattr(app.state, "llm_clients", ()) or ():
+        try:
+            await client.aclose()
+        except Exception:  # noqa: BLE001 - best-effort cleanup on shutdown
+            pass
 
 
 def create_app() -> FastAPI:
