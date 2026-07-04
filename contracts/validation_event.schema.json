@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/aminssutt/Arc/contracts/validation_event.schema.json",
+  "title": "Arc validation event v1 (FROZEN after phase 0) — POST /api/validation body",
+  "type": "object",
+  "required": ["incident_id", "client_event_id", "submitted_at", "validations"],
+  "properties": {
+    "incident_id": { "type": "string", "minLength": 1 },
+    "client_event_id": {
+      "type": "string", "minLength": 1,
+      "description": "idempotency key: resend with same key => same 200 response, no state change"
+    },
+    "submitted_at": { "type": "string", "format": "date-time" },
+    "technician": {
+      "type": "object",
+      "properties": { "id": { "type": "string" }, "name": { "type": "string" } }
+    },
+    "validations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["failure_id", "verdict"],
+        "properties": {
+          "failure_id": { "type": "string", "description": "failure.id from the push payload" },
+          "verdict": { "enum": ["real", "false"] },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "measurements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["metric", "value", "unit"],
+        "properties": {
+          "metric": { "type": "string" }, "point": { "type": "string" },
+          "value": { "type": "number" }, "unit": { "type": "string" }
+        }
+      }
+    }
+  }
+}
