@@ -51,12 +51,17 @@ flowchart LR
 |---|---|---|
 | **Energy / power** (demo core) | grid loss, rectifier failure, degraded backup batteries, -48V DC plant voltage anomalies, blown fuse / tripped breaker, genset failure | **Injected live** |
 | Environment / physical | HVAC failure + thermal shutdown of radios, temp/humidity/water intrusion, door/intrusion, smoke | **Injected live** (thermal) |
-| RF / radio | cell down / sleeping cell, VSWR / feeder or antenna fault, return loss, GPS timing loss | Covered by architecture, framed honestly at pitch |
+| RF / radio | cell down / sleeping cell, VSWR / feeder or antenna fault, return loss, GPS timing loss | Covered by architecture; VSWR proven **offline** (eval case R2), not injected live |
 | Transport / connectivity | backhaul down (fiber cut, microwave), degradation (loss/latency/jitter), site router/switch failure | Covered by architecture, framed honestly at pitch |
 
-Pitch beat: **voltage appears twice** — DC plant undervoltage (energy) and
-VSWR on the antenna (RF) — the same agent reasons about two different voltage
-faults.
+Pitch beat: **voltage appears twice** — the live demo plays it inside the
+**energy** family: a DC plant undervoltage that the field measurement either
+confirms (confirm run) or exposes as a supervision/sensing-card fault (pivot
+run). The second voltage fault — **antenna VSWR** — is proven in our **offline
+eval** (case R2): the same agent reasons about a second voltage fault (VSWR)
+without any live RF injection. Framed honestly at pitch: the live voltage beat is
+the energy confirm/pivot; the RF half is coverage-by-architecture, measured
+offline (see `validation/GROUND_TRUTH_SCENARIOS.md`).
 
 ## Phases
 
