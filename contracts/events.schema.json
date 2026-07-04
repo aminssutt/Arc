@@ -1,0 +1,408 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/aminssutt/Arc/contracts/events.schema.json",
+  "title": "Arc SSE event envelope v1 (FROZEN after phase 0)",
+  "type": "object",
+  "required": ["seq", "id", "ts", "incident_id", "type", "data"],
+  "properties": {
+    "seq": { "type": "integer", "minimum": 1 },
+    "id": { "type": "string", "minLength": 1 },
+    "ts": { "type": "string", "format": "date-time" },
+    "incident_id": { "type": "string", "minLength": 1 },
+    "type": { "$ref": "#/$defs/eventType" },
+    "data": { "type": "object" }
+  },
+  "allOf": [
+    { "if": { "properties": { "type": { "const": "fault_detected" } } },
+      "then": { "properties": { "data": { "$ref": "#/$defs/faultDetected" } } } },
+    { "if": { "properties": { "type": { "const": "phase_started" } } },
+      "then": { "properties": { "data": { "$ref": "#/$defs/phaseStarted" } } } },
+    { "if": { "properties": { "type": { "const": "agent_started" } } },
+      "then": { "properties": { "data": { "$ref": "#/$defs/agentStarted" } } } },
+    { "if": { "properties": { "type": { "const": "agent_completed" } } },
+      "then": { "properties": { "data": { "$ref": "#/$defs/agentCompleted" } } } },
+    { "if": { "properties": { "type": { "const": "retrieval_performed" } } },
+      "then": { "properties": { "data": { "$ref": "#/$defs/retrievalPerformed" } } } },
+    { "if": { "properties": { "type": { "const": "diagnostic_ready" } } },
+      "then": { "properties": { "data": { "$ref": "#/$defs/diagnosticReady" } } } },
+    { "if": { "properties": { "type": { "const": "push_sent" } } },
+      "then": { "properties": { "data": { "$ref": "#/$defs/pushSent" } } } },
+    { "if": { "properties": { "type": { "const": "awaiting_field_validation" } } },
+      "then": { "properties": { "data": { "$ref": "#/$defs/awaitingFieldValidation" } } } },
+    { "if": { "properties": { "type": { "const": "validation_received" } } },
+      "then": { "properties": { "data": { "$ref": "#/$defs/validationReceived" } } } },
+    { "if": { "properties": { "type": { "const": "validation_result" } } },
+      "then": { "properties": { "data": { "$ref": "#/$defs/validationResult" } } } },
+    { "if": { "properties": { "type": { "const": "remediation_ready" } } },
+      "then": { "properties": { "data": { "$ref": "#/$defs/remediationReady" } } } },
+    { "if": { "properties": { "type": { "const": "action_report_ready" } } },
+      "then": { "properties": { "data": { "$ref": "#/$defs/actionReportReady" } } } },
+    { "if": { "properties": { "type": { "const": "doc_requested" } } },
+      "then": { "properties": { "data": { "$ref": "#/$defs/docRequested" } } } },
+    { "if": { "properties": { "type": { "const": "incident_resolved" } } },
+      "then": { "properties": { "data": { "$ref": "#/$defs/incidentResolved" } } } }
+  ],
+  "$defs": {
+    "eventType": {
+      "enum": ["fault_detected", "phase_started", "agent_started", "agent_completed",
+               "retrieval_performed", "diagnostic_ready", "push_sent",
+               "awaiting_field_validation", "validation_received", "validation_result",
+               "remediation_ready", "action_report_ready", "doc_requested",
+               "incident_resolved"]
+    },
+    "family": { "enum": ["energy", "environment", "rf", "transport"] },
+    "agent": { "enum": ["correlation", "root_cause", "validation", "remediation", "cost_inventory_dispatch"] },
+    "severity": { "enum": ["critical", "major", "minor", "warning", "indeterminate", "cleared"] },
+    "citation": {
+      "type": "object",
+      "required": ["doc_id", "claim"],
+      "properties": {
+        "doc_id": { "type": "string", "description": "source ID in validation/DATA_MANIFEST.md" },
+        "title": { "type": "string" },
+        "page": { "type": "integer", "minimum": 1 },
+        "claim": { "type": "string" }
+      }
+    },
+    "site": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string" }, "name": { "type": "string" },
+        "lat": { "type": "number" }, "lon": { "type": "number" },
+        "address": { "type": "string" }
+      }
+    },
+    "failure": {
+      "type": "object",
+      "required": ["id", "code", "severity", "equipment"],
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string", "description": "alarm/failure code, e.g. real Eltek trap name" },
+        "severity": { "$ref": "#/$defs/severity" },
+        "equipment": { "type": "string" },
+        "metric": { "type": "string" },
+        "value": { "type": ["number", "string", "boolean", "null"] },
+        "first_seen": { "type": "string", "format": "date-time" }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "required": ["metric", "value", "unit"],
+      "properties": {
+        "metric": { "type": "string" }, "point": { "type": "string" },
+        "value": { "type": "number" }, "unit": { "type": "string" }
+      }
+    },
+    "faultDetected": {
+      "type": "object",
+      "required": ["site", "family", "failures", "trigger"],
+      "properties": {
+        "site": { "$ref": "#/$defs/site" },
+        "family": { "$ref": "#/$defs/family" },
+        "failures": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/failure" } },
+        "trigger": {
+          "type": "object",
+          "required": ["rule", "triggered_at"],
+          "properties": {
+            "rule": { "type": "string" },
+            "debounce_s": { "type": "number" },
+            "triggered_at": { "type": "string", "format": "date-time" }
+          }
+        }
+      }
+    },
+    "phaseStarted": {
+      "type": "object",
+      "required": ["phase", "cause"],
+      "properties": {
+        "phase": { "enum": [1, 2] },
+        "cause": { "enum": ["initial", "pivot"] }
+      }
+    },
+    "agentStarted": {
+      "type": "object",
+      "required": ["agent", "phase"],
+      "properties": { "agent": { "$ref": "#/$defs/agent" }, "phase": { "enum": [1, 2] } }
+    },
+    "agentCompleted": {
+      "type": "object",
+      "required": ["agent", "phase", "status"],
+      "properties": {
+        "agent": { "$ref": "#/$defs/agent" }, "phase": { "enum": [1, 2] },
+        "status": { "enum": ["ok", "error", "timeout"] },
+        "duration_ms": { "type": "integer", "minimum": 0 },
+        "summary": { "type": "string" }
+      }
+    },
+    "retrievalPerformed": {
+      "type": "object",
+      "required": ["agent", "pass", "query", "results"],
+      "properties": {
+        "agent": { "$ref": "#/$defs/agent" },
+        "pass": { "type": "integer", "minimum": 1 },
+        "query": { "type": "string" },
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["doc_id"],
+            "properties": {
+              "doc_id": { "type": "string" }, "title": { "type": "string" },
+              "page": { "type": "integer" }, "score": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
+    "diagnosticReady": {
+      "type": "object",
+      "required": ["correlation", "causes"],
+      "properties": {
+        "correlation": {
+          "type": "object",
+          "required": ["site_id", "equipment"],
+          "properties": {
+            "site_id": { "type": "string" },
+            "equipment": { "type": "array", "items": { "type": "string" } },
+            "blast_radius": { "type": "string" }
+          }
+        },
+        "causes": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["rank", "cause", "confidence", "citations"],
+            "properties": {
+              "rank": { "type": "integer", "minimum": 1 },
+              "cause": { "type": "string" },
+              "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+              "rejected_because": { "type": "string" },
+              "citations": { "type": "array", "items": { "$ref": "#/$defs/citation" } }
+            }
+          }
+        },
+        "urgency": {
+          "type": "object",
+          "required": ["kind"],
+          "properties": {
+            "kind": { "type": "string" }, "estimate_min": { "type": "number" },
+            "basis": { "type": "string" },
+            "citations": { "type": "array", "items": { "$ref": "#/$defs/citation" } }
+          }
+        },
+        "failures": { "type": "array", "items": { "$ref": "#/$defs/failure" },
+                      "description": "failures added since fault_detected" },
+        "verification_requests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["failure_id", "action"],
+            "properties": {
+              "failure_id": { "type": "string" }, "action": { "type": "string" },
+              "point": { "type": "string" }, "metric": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "pushSent": {
+      "type": "object",
+      "required": ["method", "payload"],
+      "properties": {
+        "method": { "enum": ["simctl", "apns"] },
+        "payload": { "type": "object", "description": "conforms to push_payload.schema.json" }
+      }
+    },
+    "awaitingFieldValidation": {
+      "type": "object",
+      "required": ["failure_ids"],
+      "properties": {
+        "failure_ids": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+        "requested_measurements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["metric"],
+            "properties": {
+              "metric": { "type": "string" }, "point": { "type": "string" }, "unit": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "validationReceived": {
+      "type": "object",
+      "required": ["validations", "client_event_id"],
+      "properties": {
+        "validations": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["failure_id", "verdict"],
+            "properties": {
+              "failure_id": { "type": "string" },
+              "verdict": { "enum": ["real", "false"] },
+              "note": { "type": "string" }
+            }
+          }
+        },
+        "measurements": { "type": "array", "items": { "$ref": "#/$defs/measurement" } },
+        "technician": { "type": "object", "properties": { "id": { "type": "string" }, "name": { "type": "string" } } },
+        "client_event_id": { "type": "string" }
+      }
+    },
+    "validationResult": {
+      "type": "object",
+      "required": ["result", "rationale"],
+      "properties": {
+        "result": { "enum": ["confirmed", "pivot"] },
+        "rationale": { "type": "string" },
+        "contradictions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["failure_id"],
+            "properties": {
+              "failure_id": { "type": "string" },
+              "telemetry": { "type": ["number", "string"] },
+              "measured": { "type": ["number", "string"] },
+              "unit": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "remediationReady": {
+      "type": "object",
+      "required": ["procedure"],
+      "properties": {
+        "procedure": {
+          "type": "object",
+          "required": ["title", "steps"],
+          "properties": {
+            "title": { "type": "string" },
+            "steps": {
+              "type": "array", "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["n", "text", "citations"],
+                "properties": {
+                  "n": { "type": "integer" }, "text": { "type": "string" },
+                  "citations": { "type": "array", "items": { "$ref": "#/$defs/citation" } }
+                }
+              }
+            },
+            "safety": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["text", "citations"],
+                "properties": {
+                  "text": { "type": "string" },
+                  "citations": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/citation" } }
+                }
+              }
+            }
+          }
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["part_no", "qty"],
+            "properties": {
+              "part_no": { "type": "string" }, "description": { "type": "string" },
+              "qty": { "type": "integer", "minimum": 1 }
+            }
+          }
+        }
+      }
+    },
+    "actionReportReady": {
+      "type": "object",
+      "required": ["report"],
+      "properties": {
+        "report": {
+          "type": "object",
+          "required": ["diagnosis", "actions", "cost", "citations"],
+          "properties": {
+            "diagnosis": {
+              "type": "object",
+              "required": ["cause", "confidence", "citations"],
+              "properties": {
+                "cause": { "type": "string" },
+                "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+                "citations": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/citation" } }
+              }
+            },
+            "actions": {
+              "type": "array", "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["priority", "action"],
+                "properties": {
+                  "priority": { "enum": ["P1", "P2", "P3"] },
+                  "action": { "type": "string" }, "owner": { "type": "string" },
+                  "eta": { "type": "string", "format": "date-time" }, "status": { "type": "string" }
+                }
+              }
+            },
+            "cost": {
+              "type": "object",
+              "required": ["currency", "intervention", "avoided"],
+              "properties": {
+                "currency": { "type": "string" },
+                "intervention": { "type": "number" }, "avoided": { "type": "number" },
+                "notes": { "type": "string" },
+                "sla": {
+                  "type": "object",
+                  "properties": {
+                    "clock": { "type": "string" },
+                    "citations": { "type": "array", "items": { "$ref": "#/$defs/citation" } }
+                  }
+                }
+              }
+            },
+            "inventory": {
+              "type": "object",
+              "properties": {
+                "part_no": { "type": "string" }, "qty_available": { "type": "integer" },
+                "location": { "type": "string" }, "unit_price": { "type": "number" },
+                "in_stock": { "type": "boolean" }
+              }
+            },
+            "dispatch": {
+              "type": "object",
+              "properties": {
+                "booking_id": { "type": "string" }, "crew": { "type": "string" },
+                "skill": { "type": "string" }, "eta": { "type": "string", "format": "date-time" },
+                "conflict": { "type": "string", "description": "set when no crew available" }
+              }
+            },
+            "honesty_notes": { "type": "array", "items": { "type": "string" } },
+            "citations": { "type": "array", "items": { "$ref": "#/$defs/citation" } }
+          }
+        }
+      }
+    },
+    "docRequested": {
+      "type": "object",
+      "required": ["agent", "description"],
+      "properties": {
+        "agent": { "$ref": "#/$defs/agent" },
+        "description": { "type": "string" },
+        "query": { "type": "string" },
+        "status": { "enum": ["missing", "fetched", "rejected"] }
+      }
+    },
+    "incidentResolved": {
+      "type": "object",
+      "required": ["summary", "outcome"],
+      "properties": {
+        "summary": { "type": "string" },
+        "total_duration_s": { "type": "number" },
+        "outcome": { "enum": ["resolved", "downgraded"] }
+      }
+    }
+  }
+}

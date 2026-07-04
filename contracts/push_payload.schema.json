@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/aminssutt/Arc/contracts/push_payload.schema.json",
+  "title": "Arc push payload v1 (FROZEN after phase 0) — APNs-shaped; simctl demo path",
+  "type": "object",
+  "required": ["aps", "incident_id", "site", "family", "failures"],
+  "properties": {
+    "Simulator Target Bundle": {
+      "type": "string",
+      "description": "simctl-only convenience (xcrun simctl push booted <file>); omitted/ignored on real APNs"
+    },
+    "aps": {
+      "type": "object",
+      "required": ["alert"],
+      "properties": {
+        "alert": {
+          "type": "object",
+          "required": ["title", "body"],
+          "properties": { "title": { "type": "string" }, "body": { "type": "string" } }
+        },
+        "sound": { "type": "string" },
+        "category": { "const": "ARC_VALIDATION" }
+      }
+    },
+    "incident_id": { "type": "string", "minLength": 1 },
+    "site": {
+      "type": "object",
+      "required": ["id", "name", "lat", "lon"],
+      "properties": {
+        "id": { "type": "string" }, "name": { "type": "string" },
+        "lat": { "type": "number" }, "lon": { "type": "number" },
+        "address": { "type": "string" }
+      }
+    },
+    "family": { "enum": ["energy", "environment", "rf", "transport"] },
+    "failures": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "code", "severity", "equipment"],
+        "properties": {
+          "id": { "type": "string" },
+          "code": { "type": "string" },
+          "severity": { "enum": ["critical", "major", "minor", "warning", "indeterminate", "cleared"] },
+          "equipment": { "type": "string" }
+        }
+      }
+    }
+  }
+}
