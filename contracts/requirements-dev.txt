@@ -1,0 +1,5 @@
+# Dev-only dependencies for the frozen contracts test suite (issue #7 / P0.7).
+# Pinned to the latest stable at coding date (2026-07-04); pip-audit clean (0 CVE).
+-r requirements.txt
+pytest==9.1.1
+pytest-asyncio==1.4.0
