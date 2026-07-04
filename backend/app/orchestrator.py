@@ -254,14 +254,45 @@ class Orchestrator:
             await self._run_phase2()  # field data already in hand — no second push loop
             return
 
+        responders = await self._match_responders(corr)  # employee-matching (aminssutt)
         payload = await self.push.send(inc)  # emits push_sent
         self.bus.emit(inc["id"], "awaiting_field_validation", {
             "failure_ids": [f["id"] for f in inc["failures"]],
             "requested_measurements": [
                 {"metric": v.get("metric", ""), "point": v.get("point", ""), "unit": ""}
                 for v in diagnostic.get("verification_requests", [])],
+            **({"responders": responders} if responders else {}),
         })
         self._transition(AWAITING)
+
+    async def _match_responders(self, corr) -> list[dict[str, Any]]:
+        """Employee-matching: route the diagnosed fault to ONE responder to notify.
+
+        Runs the deterministic ResponderMatchingAgent directly (it is not a
+        frozen `agent` enum value, so it never goes through `_run_agent`); its
+        pick rides the `awaiting_field_validation` event's `data` (schema is open,
+        no contract change). Never breaks the run — degrades to no responder.
+        """
+        agent = self.agents.get("responder_matching")
+        if agent is None:
+            return []
+        inc = self.incident
+        primary = inc["failures"][0] if inc["failures"] else {}
+        fault = {
+            "family": inc["family"],
+            "equipment_class": corr.payload.get("correlation", {}).get("equipment_class"),
+            "code": primary.get("alarm_code") or primary.get("code"),  # canonical alarm_code
+            "region": inc["site"].get("region", ""),
+        }
+        try:
+            out = await agent.run(AgentInput(
+                incident_id=inc["id"], site_id=inc["site"].get("site_id", "unknown"),
+                failure_family=inc["family"], context={"fault": fault}))
+        except Exception:  # noqa: BLE001 - notification is best-effort, never fatal
+            return []
+        inc["responders"] = out.payload
+        chosen = out.payload.get("responder")
+        return [chosen] if chosen else []
 
     # -- human loop (from POST /api/validation, BE.6) ---------------------------
     async def handle_validation(self, body: dict[str, Any]) -> dict[str, Any]:
