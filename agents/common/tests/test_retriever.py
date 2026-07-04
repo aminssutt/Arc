@@ -21,13 +21,14 @@ Coverage map (issue #25 acceptance criteria):
 from __future__ import annotations
 
 import json
+import logging
 import re
 
 import httpx
 import pytest
 
 from contracts.agent_interface import Citation, RetrievedRef
-from agents.common.retriever import IngestSummary, VultronRetriever
+from agents.common.retriever import CollectionCollisionError, IngestSummary, VultronRetriever
 
 BASE_URL = "https://fake.vultr"
 
@@ -398,3 +399,106 @@ class TestIngestManifest:
         assert (summary.created, summary.replaced, summary.skipped) == (0, 0, 2)
         # Still exactly two items, unchanged.
         assert set(fake.item_contents()) == {self.FILE_CONTENT, self.LITERAL_TEXT}
+
+
+# --------------------------------------------------------------------------- #
+# 6. Collection prefix-collision guard (issue #102)
+# --------------------------------------------------------------------------- #
+class FakeVultrStrict(FakeVultr):
+    """Models the REAL API: a create whose derived id already belongs to a
+    different-named collection is REJECTED with 422 'Duplicate collection name'
+    (rather than silently aliasing, which the base FakeVultr does)."""
+
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        if request.method == "POST" and request.url.path == "/v1/vector_store":
+            self.calls.append(("POST", request.url.path))
+            name = json.loads(request.content)["name"]
+            cid = self.derive_cid(name)
+            owner = next((n for n, c in self.collections.items() if c == cid), None)
+            if owner is not None and owner != name:
+                return httpx.Response(422, json={
+                    "message": "Duplicate collection name found, please provide a unique name"})
+            self.collections[name] = cid
+            self.items.setdefault(cid, {})
+            return httpx.Response(200, json={"collection": {"id": cid, "name": name}})
+        return super().handler(request)
+
+
+# Two distinct names that share their first 14 chars -> same truncated id.
+NAME_A = "arc_remediation_smoke"
+NAME_B = "arc_remediation_probe"
+
+
+class TestCollectionCollisionGuard:
+    def test_shared_prefix_is_the_root_cause(self) -> None:
+        # Different names, identical derived id -> the collision the guard fixes.
+        assert NAME_A[:14] == NAME_B[:14]
+        assert FakeVultr.derive_cid(NAME_A) == FakeVultr.derive_cid(NAME_B)
+
+    @pytest.mark.asyncio
+    async def test_suffix_mode_disambiguates_and_warns(self, caplog) -> None:
+        # Arrange -- collection A already exists on the backend.
+        fake = FakeVultr()
+        cid_a = fake.seed_collection(NAME_A)
+        async with fake_client(fake) as client:
+            r_b = VultronRetriever(NAME_B, client=client, on_collision="suffix")
+            with caplog.at_level(logging.WARNING, logger="agents.common.retriever"):
+                cid_b = await r_b.ensure_collection()
+        # Assert -- B got a DISTINCT id, its name was disambiguated, warning logged.
+        assert cid_b != cid_a
+        assert r_b.collection_name != NAME_B
+        assert r_b.collection_name.startswith(NAME_B[:7])
+        assert "collide" in caplog.text.lower()
+
+    @pytest.mark.asyncio
+    async def test_suffix_mode_against_real_api_duplicate_422(self, caplog) -> None:
+        # The real API rejects the colliding create with 422; the guard still
+        # disambiguates to a distinct collection.
+        fake = FakeVultrStrict()
+        cid_a = fake.seed_collection(NAME_A)
+        async with fake_client(fake) as client:
+            r_b = VultronRetriever(NAME_B, client=client, on_collision="suffix")
+            with caplog.at_level(logging.WARNING, logger="agents.common.retriever"):
+                cid_b = await r_b.ensure_collection()
+        assert cid_b != cid_a
+        assert r_b.collection_name != NAME_B
+        assert "collide" in caplog.text.lower()
+
+    @pytest.mark.asyncio
+    async def test_reuse_mode_returns_the_colliding_id(self, caplog) -> None:
+        fake = FakeVultr()
+        cid_a = fake.seed_collection(NAME_A)
+        async with fake_client(fake) as client:
+            r_b = VultronRetriever(NAME_B, client=client, on_collision="reuse")
+            with caplog.at_level(logging.WARNING, logger="agents.common.retriever"):
+                cid_b = await r_b.ensure_collection()
+        # Deliberate share (e.g. arcdemo corpus): B reuses A's collection id.
+        assert cid_b == cid_a
+        assert "collide" in caplog.text.lower()
+
+    @pytest.mark.asyncio
+    async def test_error_mode_raises(self) -> None:
+        fake = FakeVultr()
+        fake.seed_collection(NAME_A)
+        async with fake_client(fake) as client:
+            r_b = VultronRetriever(NAME_B, client=client, on_collision="error")
+            with pytest.raises(CollectionCollisionError):
+                await r_b.ensure_collection()
+
+    @pytest.mark.asyncio
+    async def test_no_collision_creates_normally_without_warning(self, caplog) -> None:
+        # Compat: a unique name is unaffected by the guard (call-site behaviour).
+        fake = FakeVultr()
+        fake.seed_collection(NAME_A)
+        async with fake_client(fake) as client:
+            r = VultronRetriever("arc_unique_corpus_x", client=client)  # default suffix
+            with caplog.at_level(logging.WARNING, logger="agents.common.retriever"):
+                cid = await r.ensure_collection()
+        assert cid == FakeVultr.derive_cid("arc_unique_corpus_x")
+        assert r.collection_name == "arc_unique_corpus_x"  # name untouched
+        assert "collide" not in caplog.text.lower()
+
+    def test_invalid_on_collision_mode_rejected(self) -> None:
+        # Validated eagerly in __init__, before any client work.
+        with pytest.raises(ValueError):
+            VultronRetriever(NAME_A, api_key="x", on_collision="bogus")
