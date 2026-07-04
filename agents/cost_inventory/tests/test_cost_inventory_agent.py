@@ -145,22 +145,42 @@ def test_integration_real_tools_and_seeds():
     agent = CostInventoryDispatchAgent(
         CostEngineTool(seeds), InventoryLookupTool(seeds), CrewDispatchTool(seeds),
     )
-    out = _run(agent, _input())
+    # Canonical confirm scenario (frozen run_confirm): the Paris-Nord gold site and
+    # the Eaton rectifier the reconciled seeds carry. The shared _input() still pins
+    # the OLD part/site for the fake-tool unit tests, so this REAL-tools path feeds
+    # the canonical reference explicitly.
+    inp = AgentInput(
+        incident_id="INC-DEMO-001", site_id="PAR-021-NORD", failure_family="energy",
+        context={
+            "parts": [{"part_no": "APR48-3G", "qty": 1}],
+            "remediation_title": "Replace failed rectifier module",
+            "top_priority": "P1",
+        },
+    )
+    out = _run(agent, inp)
 
-    # part matched to a REAL seeded stock line
+    # part matched to a REAL seeded stock line (data/inventory.csv: APR48-3G)
     part = out.payload["action_report"]["part"]
-    assert part["part_number"] == "PN-RECT-48-2000"
+    assert part["part_number"] == "APR48-3G"
     assert part["in_stock"] is True
-    assert part["quantity"] == 6
-    assert part["warehouse_id"] == "WH-PAR-CENTRAL"
+    assert part["quantity"] == 3
+    assert part["warehouse_id"] == "WH-PAR-EST"
 
-    # totals consistent with the Cost Engine (parts 420 + labor 170 + truck 180)
+    # Cost derived from the real seeds + CostEngineTool formula:
+    #   repair  = part 769.04 + labor 35.73*2h + truck_roll 325.00 = 1165.50
+    #             (matches frozen run_confirm intervention 1165.50)
+    #   avoided = downtime 5.00/min * 240 (gold restore_target) * 1.5 (gold weight)
+    #             + sla_breach_penalty 5000.00 = 6800.00
+    #   NB: the frozen fixture avoided is 4180.00 — a hand-authored "SLA credits +
+    #   downtime" figure predating the seeded flat-penalty model; the deterministic
+    #   tool math is the source of truth for the live path.
     cost = out.payload["cost"]
-    assert cost["repair_cost"] == 770.0
-    assert cost["downtime_cost_avoided"] == 5450.0        # 250c*120min*1.5 + 5000
+    assert cost["repair_cost"] == 1165.50
+    assert cost["downtime_cost_avoided"] == 6800.00
     assert out.payload["totals_consistent"] is True
 
-    # crew booked from the real schedule (IDF-North, power, available)
+    # crew booked from the real schedule: PAR-021-NORD is IDF-North; the only AVAILABLE
+    # IDF-North dc_power crew is PWR-2 (PWR-5 is on_job, PWR-7 is IDF-East).
     assert out.payload["dispatch"]["booked"] is True
-    assert out.payload["dispatch"]["crew_id"] == "CREW-IDF-3"
+    assert out.payload["dispatch"]["crew_id"] == "PWR-2"
     assert len(out.payload["tool_calls"]) == 3

@@ -1,0 +1,9 @@
+raw_trap,alarm_code,family,note
+alarmMajorRectifier,PWR-RECT-FAIL,energy,rectifier module lost/failed (V4 V6)
+DC_UNDERVOLTAGE,PWR-DC-UV,energy,plant sag below alarm threshold
+alarmMajorLowBattVolt,PWR-BATT-DEGRADED,energy,low battery voltage (V6)
+alarmLVD1open,PWR-DC-UV,energy,low-voltage disconnect — deep-undervoltage end state (V1/V2)
+alarmACmains,PWR-GRID-LOSS,energy,mains input lost (V6)
+HIGH_TEMP,ENV-HVAC-FAIL,environment,cabinet over-temperature
+alarmGeneratorTrap,,energy,genset fault (V7) — no canonical code yet (add PWR-GENSET-FAIL when genset run is seeded)
+alarmDistributionBreakerOpen,,energy,blown fuse / tripped breaker (V6) — no canonical code yet (eval E4 holdout)
