@@ -1,0 +1,57 @@
+[
+  {
+    "doc_id": "DOC-RAN-001",
+    "type": "ran_manual",
+    "title": "Vertiv NetSure-48 DC Power System — O&M Manual",
+    "path": "corpus/ran_manuals/vertiv_netsure48_om.md",
+    "vendor": "Vertiv",
+    "equipment_class": "rectifier",
+    "site_id": null,
+    "date": "2022-03-01",
+    "tags": ["dc_plant", "rectifier", "-48v", "safety"]
+  },
+  {
+    "doc_id": "DOC-PWR-002",
+    "type": "power_spec",
+    "title": "-48V Plant Undervoltage — Diagnostic & Recovery Procedure",
+    "path": "corpus/power_specs/dc_undervoltage_procedure.md",
+    "vendor": null,
+    "equipment_class": "rectifier",
+    "site_id": null,
+    "date": "2023-01-15",
+    "tags": ["dc_plant", "undervoltage", "battery", "remediation"]
+  },
+  {
+    "doc_id": "DOC-INC-114",
+    "type": "incident_ticket",
+    "title": "INC-114 SITE-PAR-014 DC plant undervoltage, rectifier tripped",
+    "path": "corpus/incidents/inc_114.md",
+    "vendor": "Vertiv",
+    "equipment_class": "rectifier",
+    "site_id": "SITE-PAR-014",
+    "date": "2024-11-20",
+    "tags": ["energy", "PWR-DC-UV", "historical", "confirm-scenario"]
+  },
+  {
+    "doc_id": "DOC-OUT-045",
+    "type": "outage_report",
+    "title": "Outage OUT-045 — VSWR feeder fault mistaken for DC issue",
+    "path": "corpus/outages/out_045.md",
+    "vendor": "RFS",
+    "equipment_class": "feeder",
+    "site_id": "SITE-PAR-014",
+    "date": "2024-06-08",
+    "tags": ["rf", "RF-VSWR-HIGH", "pivot-scenario", "historical"]
+  },
+  {
+    "doc_id": "DOC-SLA-003",
+    "type": "vendor_sla",
+    "title": "Vertiv Spares & Response SLA",
+    "path": "corpus/slas/vertiv_sla.md",
+    "vendor": "Vertiv",
+    "equipment_class": null,
+    "site_id": null,
+    "date": "2023-09-01",
+    "tags": ["sla", "spares", "response"]
+  }
+]
