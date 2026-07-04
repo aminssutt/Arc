@@ -146,3 +146,26 @@ numbered splitting, ~1500-char paragraph fallback), unblocking the corpus build 
 retriever smoke fixtures adopted the canonical S/V/O/I namespace
 (`eltek-flatpack2-om-manual`→`V2`, `site-safety-dc-power-plant`→`UFC-3-540-07`); the
 Correlation/Root-Cause harness mocks follow suit.
+
+
+---
+
+## max_tokens sizing guidance  [ADOPTED]
+
+**Date:** 2026-07-04 · **Author:** @vgtray (dev-backend) · **Source:** audit stage-A P2-5
+
+Structured-output calls are sized **per agent** to let the model finish cleanly
+(`finish_reason=stop`), not truncate. The single-call default in the client is small
+(`agents/common/vultr.py`), so agents with large JSON payloads raise it explicitly:
+
+| Agent | Constant | Value |
+|-------|----------|-------|
+| Correlation (plan) | `_PLAN_MAX_TOKENS` — `agents/correlation/agent.py` | 800 |
+| Remediation | `_REMEDIATION_MAX_TOKENS` — `agents/remediation/agent.py` | 2000 |
+| Root-Cause | `DEFAULT_MAX_TOKENS` — `agents/root_cause/agent.py` | 600 |
+
+**Rule:** size the budget so the expected JSON completes with `finish_reason=stop`. The
+client's automatic single re-prompt on invalid JSON is a **safety net, not a substitute**
+for enough tokens — a payload that truncates at the cap will just truncate again. When an
+agent's output grows (more ranked causes, longer procedures), bump its constant, don't lean
+on the re-prompt.
