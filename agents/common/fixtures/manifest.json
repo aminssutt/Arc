@@ -1,0 +1,14 @@
+[
+  {
+    "doc_id": "eltek-flatpack2-om-manual",
+    "title": "Eltek Flatpack2 Rectifier System — O&M Manual (excerpt)",
+    "section": "3.2 DC Undervoltage Alarm",
+    "path_or_text": "rectifier_flatpack2.txt"
+  },
+  {
+    "doc_id": "site-safety-dc-power-plant",
+    "title": "Site Safety Procedure — -48V DC Power Plant Servicing",
+    "section": "2 Lockout/Tagout and PPE before servicing",
+    "path_or_text": "safety_dc_power_-48v.txt"
+  }
+]

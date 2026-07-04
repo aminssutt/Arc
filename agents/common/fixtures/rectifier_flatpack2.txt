@@ -1,0 +1,20 @@
+Eltek Flatpack2 Rectifier System — Operation & Maintenance Manual (excerpt)
+
+Section 3.2 — DC Undervoltage Alarm
+
+The rectifier module raises a DC UNDERVOLTAGE alarm when the measured output
+of the -48V power plant falls below the configured low-voltage threshold
+(factory default -43.2 V, i.e. 90% of nominal). Common root causes are a
+failed or de-rated rectifier module, an open input breaker feeding one phase,
+or a battery string that has taken over the load during an AC mains failure.
+
+Corrective actions, in order:
+  1. Read the plant controller: confirm the actual battery bus voltage and how
+     many rectifier modules report "current-limit" or "fail".
+  2. If AC mains are present, verify each rectifier input breaker; reset any
+     that have tripped and confirm the module returns to "float".
+  3. If the bus is on discharge (mains fault), the undervoltage alarm is a
+     downstream symptom — restore AC or the standby generator first.
+  4. Replace any rectifier module that stays in "fail" after an input reset.
+Do not raise the low-voltage threshold to clear the alarm: it masks a real
+loss of holdup time and risks a hard site outage on the next mains dip.
