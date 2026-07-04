@@ -12,6 +12,29 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+def _load_dotenv(path: Path = REPO_ROOT / ".env") -> None:
+    """Minimal stdlib .env loader (KEY=VALUE lines; '#' comments).
+
+    Process env wins over the file; values are NEVER logged. The repo is
+    PUBLIC — .env is gitignored and stays local (see .env.example). Tests
+    blank the sensitive keys in conftest BEFORE importing backend modules,
+    so the suite can never make paid LLM calls.
+    """
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key, value = key.strip(), value.strip().strip('"').strip("'")
+        if key and value and key not in os.environ:
+            os.environ[key] = value
+
+
+_load_dotenv()
+
+
 def _env(name: str, default: str) -> str:
     return os.environ.get(name, default)
 
