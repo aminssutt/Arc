@@ -6,6 +6,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from agents.cost_inventory import CostInventoryDispatchAgent
+
 from backend.app.bus import EventBus
 from backend.app.dummy_agents import default_registry
 from backend.app.orchestrator import Orchestrator
@@ -33,7 +35,11 @@ async def lifespan(app: FastAPI):
     push = PushService(app.state.bus, settings)
     registry = default_registry(cost, inventory, dispatch)
     # REAL agents replace dummies here as their lanes land (registry handoff):
-    registry["validation"] = ValidationAgentAdapter(app.state.seeds)  # aminssutt's AGA.1
+    registry["validation"] = ValidationAgentAdapter(app.state.seeds)          # aminssutt's AGA.1
+    registry["cost_inventory_dispatch"] = CostInventoryDispatchAgent(         # aminssutt's AGA.3
+        cost, inventory, dispatch)
+    # correlation / root_cause / remediation need the shared Vultr client
+    # (vgtray's key) — swapped in at INT.1/INT.3 with the same one-line pattern.
     orchestrator = Orchestrator(app.state.bus, app.state.seeds, registry,
                                 push, agent_timeout_s=settings.agent_timeout_s)
     watchdog = Watchdog(app.state.seeds, orchestrator.handle_fault, orchestrator.add_failures)
