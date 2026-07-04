@@ -1,0 +1,29 @@
+{
+  "incident_id": "INC-DEMO-CONFIRM-001",
+  "site_id": "SITE-PAR-014",
+  "failure_family": "energy",
+  "context": {
+    "fault": {
+      "site": {"id": "SITE-PAR-014", "name": "Paris Nord 14", "lat": 48.8988, "lon": 2.3554},
+      "family": "energy",
+      "failures": [
+        {
+          "id": "F1",
+          "code": "PWR-DC-UV",
+          "severity": "critical",
+          "equipment": "EQ-PAR-014-RECT-1",
+          "metric": "dc_plant_voltage_v",
+          "value": 44.2,
+          "first_seen": "2026-07-05T09:20:00Z"
+        }
+      ],
+      "trigger": {"rule": "undervoltage_major", "debounce_s": 60, "triggered_at": "2026-07-05T09:21:00Z"}
+    },
+    "correlation": {
+      "site_id": "SITE-PAR-014",
+      "equipment": ["EQ-PAR-014-PP-1", "EQ-PAR-014-RECT-1"],
+      "localized_to": "EQ-PAR-014-RECT-1",
+      "blast_radius": "all sectors on battery reserve"
+    }
+  }
+}

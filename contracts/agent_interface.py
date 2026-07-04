@@ -96,7 +96,7 @@ class AgentInput(BaseModel):
 
     incident_id: str = Field(description="Run correlation id; ties every agent output to one incident (SSE stream key).")
     site_id: str = Field(description="Telecom site under fault (cell tower / base station / central office).")
-    failure_family: str = Field(description="Fault taxonomy family, e.g. 'energy/power', 'rf/radio'.")
+    failure_family: str = Field(description="Fault taxonomy family; canonical values: 'energy' | 'environment' | 'rf' | 'transport' (PR #64 review decision).")
     context: dict[str, Any] = Field(
         default_factory=dict,
         description="Incident/fault info + accumulated upstream findings; shape owned by the event contract.",
