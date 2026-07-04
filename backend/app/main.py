@@ -17,6 +17,7 @@ from backend.app.seeds import load_seeds
 from backend.app.settings import settings
 from backend.app.tools import CostEngineTool, CrewDispatchTool, InventoryLookupTool
 from backend.app.correlation_adapter import CorrelationAgentAdapter
+from backend.app.remediation_adapter import RemediationAgentAdapter
 from backend.app.root_cause_adapter import RootCauseAgentAdapter
 from backend.app.validation_adapter import ValidationAgentAdapter
 from backend.app.watchdog import Watchdog
@@ -24,25 +25,27 @@ from backend.app.watchdog import Watchdog
 logger = logging.getLogger("arc.backend")
 
 
-def _wire_phase1_agents(app: FastAPI, registry: dict) -> None:
-    """INT.1 (#47): swap dummy phase-1 agents for the real correlation + root_cause.
+def _wire_real_agents(app: FastAPI, registry: dict) -> None:
+    """INT.1 (#47) + INT.3 (#49): swap dummy Vultr-backed agents for the real ones.
 
     Correlation runs offline (deterministic plan), so it always goes real.
-    Root-Cause REQUIRES the shared Vultr client + retriever; it goes real only
-    when a Vultr key is configured, so the backend boots everywhere (no key ->
-    Correlation real + dummy Root-Cause, never a crash). With the key set, the
-    phase-1 path is zero-mock and diagnostic_ready carries real citations.
+    Root-Cause and Remediation REQUIRE the shared Vultr client + retriever; they
+    go real only when a Vultr key is configured, so the backend boots everywhere
+    (no key -> Correlation real, Root-Cause/Remediation stay dummy, never a
+    crash). With the key set, both phases are zero-mock and the report carries a
+    real citation trail.
     """
     llm = _build_llm_clients()
     if llm is None:
         registry["correlation"] = CorrelationAgentAdapter()
-        logger.warning("INT.1: no Vultr key — Correlation real (offline), Root-Cause stays dummy")
+        logger.warning("INT.1/3: no Vultr key — Correlation real (offline); Root-Cause/Remediation stay dummy")
         return
     vultr, retriever = llm
     app.state.llm_clients = llm
     registry["correlation"] = CorrelationAgentAdapter(vultr, retriever)
     registry["root_cause"] = RootCauseAgentAdapter(vultr, retriever)
-    logger.info("INT.1: phase-1 wired to REAL correlation + root_cause (Vultr configured)")
+    registry["remediation"] = RemediationAgentAdapter(vultr, retriever)
+    logger.info("INT.1/3: wired REAL correlation + root_cause + remediation (Vultr configured)")
 
 
 def _build_llm_clients():
@@ -84,7 +87,7 @@ async def lifespan(app: FastAPI):
     registry["validation"] = ValidationAgentAdapter(app.state.seeds)          # aminssutt's AGA.1
     registry["cost_inventory_dispatch"] = CostInventoryDispatchAgent(         # aminssutt's AGA.3
         cost, inventory, dispatch)
-    _wire_phase1_agents(app, registry)  # INT.1 (#47): real correlation + gated root_cause
+    _wire_real_agents(app, registry)  # INT.1 (#47) + INT.3 (#49): real correlation/root_cause/remediation
     orchestrator = Orchestrator(app.state.bus, app.state.seeds, registry,
                                 push, agent_timeout_s=settings.agent_timeout_s)
     watchdog = Watchdog(app.state.seeds, orchestrator.handle_fault, orchestrator.add_failures)
