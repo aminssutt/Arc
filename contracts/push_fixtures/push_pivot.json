@@ -1,0 +1,24 @@
+{
+  "Simulator Target Bundle": "com.arc.field",
+  "aps": {
+    "alert": {
+      "title": "Arc — PAR-021-NORD: energy fault",
+      "body": "2 detected failures await field validation"
+    },
+    "sound": "default",
+    "category": "ARC_VALIDATION"
+  },
+  "incident_id": "INC-DEMO-002",
+  "site": {
+    "id": "PAR-021-NORD",
+    "name": "Paris Nord macro site",
+    "lat": 48.8969,
+    "lon": 2.3383,
+    "address": "Rue de la Chapelle, 75018 Paris"
+  },
+  "family": "energy",
+  "failures": [
+    { "id": "F1", "code": "alarmMajorRectifier", "severity": "major", "equipment": "rectifier-2" },
+    { "id": "F2", "code": "DC_UNDERVOLTAGE", "severity": "major", "equipment": "busbar" }
+  ]
+}
