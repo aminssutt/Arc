@@ -1,0 +1,79 @@
+{
+  "_note": "Local topology fixture for the Correlation agent (issue #26). Shapes are aligned 1:1 with data/schema.md (sites.csv + equipment.csv). Self-contained: the agent never reads /data. parent_id=null marks a subtree root the walk enters.",
+  "sites": [
+    {
+      "site_id": "SITE-PAR-014",
+      "name": "Paris Nord 14",
+      "type": "macro",
+      "lat": 48.8988,
+      "lon": 2.3554,
+      "address": "12 Rue de la Chapelle, 75018 Paris",
+      "region": "IDF-North",
+      "power_plant_id": "PP-PAR-014",
+      "sla_tier": "gold"
+    },
+    {
+      "site_id": "SITE-PAR-021",
+      "name": "Paris Est 21",
+      "type": "macro",
+      "lat": 48.8566,
+      "lon": 2.4051,
+      "address": "5 Av. Gambetta, 75020 Paris",
+      "region": "IDF-East",
+      "power_plant_id": "PP-PAR-021",
+      "sla_tier": "silver"
+    }
+  ],
+  "equipment": [
+    {
+      "equipment_id": "EQ-PAR-014-PP-1",
+      "site_id": "SITE-PAR-014",
+      "parent_id": null,
+      "class": "rectifier",
+      "vendor": "Vertiv",
+      "model": "NetSure-48",
+      "part_number": "PN-RECT-48-2000",
+      "install_date": "2021-05-10"
+    },
+    {
+      "equipment_id": "EQ-PAR-014-RECT-1",
+      "site_id": "SITE-PAR-014",
+      "parent_id": "EQ-PAR-014-PP-1",
+      "class": "rectifier",
+      "vendor": "Vertiv",
+      "model": "R48-2000e3",
+      "part_number": "PN-RECT-48-2000",
+      "install_date": "2021-05-10"
+    },
+    {
+      "equipment_id": "EQ-PAR-014-BATT-1",
+      "site_id": "SITE-PAR-014",
+      "parent_id": "EQ-PAR-014-PP-1",
+      "class": "battery_string",
+      "vendor": "Northstar",
+      "model": "NSB-190FT",
+      "part_number": "PN-BATT-190",
+      "install_date": "2021-05-10"
+    },
+    {
+      "equipment_id": "EQ-PAR-014-ANT-1",
+      "site_id": "SITE-PAR-014",
+      "parent_id": null,
+      "class": "antenna",
+      "vendor": "Kathrein",
+      "model": "80010621",
+      "part_number": "PN-ANT-8001",
+      "install_date": "2020-11-02"
+    },
+    {
+      "equipment_id": "EQ-PAR-014-FEED-1",
+      "site_id": "SITE-PAR-014",
+      "parent_id": "EQ-PAR-014-ANT-1",
+      "class": "feeder",
+      "vendor": "RFS",
+      "model": "LCF78-50JA",
+      "part_number": "PN-FEED-78",
+      "install_date": "2020-11-02"
+    }
+  ]
+}
