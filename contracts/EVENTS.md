@@ -184,7 +184,7 @@ contradictions or synth-labeled values out loud (never hidden).
 ## Push payload (APNs-shaped; simctl demo path)
 
 ```json
-{"Simulator Target Bundle": "com.arc.field",
+{"Simulator Target Bundle": "com.arc.technician",
  "aps": {"alert": {"title": "Arc — PAR-021-NORD: energy fault",
                    "body": "3 detected failures await field validation"},
          "sound": "default", "category": "ARC_VALIDATION"},
@@ -198,7 +198,7 @@ contradictions or synth-labeled values out loud (never hidden).
 
 - `"Simulator Target Bundle"` is **simctl-only** (lets `xcrun simctl push booted <file>`
   work without passing a bundle id); real APNs ignores/omits it.
-- Bundle id `com.arc.field` = working default — **daniwavy5032 confirms in review**.
+- Bundle id `com.arc.technician` = standardized value — real-device signed & APNs-sandbox verified (daniwavy5032, 2026-07-04).
 
 ## Validation event — `POST /api/validation`
 
