@@ -16,6 +16,10 @@ struct BackendClient {
         try await send(path: "/api/demo/reset", method: "POST", body: Optional<EmptyBody>.none)
     }
 
+    func demoEvents() async throws -> DemoEventsResponse {
+        try await send(path: "/api/demo/events", method: "GET", body: Optional<EmptyBody>.none)
+    }
+
     func submitValidation(_ submission: ValidationSubmission) async throws -> ValidationResponse {
         try await send(path: "/api/validation", method: "POST", body: submission)
     }

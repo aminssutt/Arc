@@ -141,13 +141,17 @@ export function investigationReducer(
       if (action.patch.agents) {
         next.agents = { ...state.agents, ...action.patch.agents };
       }
+      // patch.evidence / patch.flow replace the lists (used by fault_detected
+      // to wipe the previous run); action.evidence / action.flow append.
+      const baseEvidence = action.patch.evidence ?? state.evidence;
       if (action.evidence) {
-        const known = new Set(state.evidence.map((item) => item.id));
-        next.evidence = [...state.evidence, ...action.evidence.filter((item) => !known.has(item.id))];
+        const known = new Set(baseEvidence.map((item) => item.id));
+        next.evidence = [...baseEvidence, ...action.evidence.filter((item) => !known.has(item.id))];
       }
+      const baseFlow = action.patch.flow ?? state.flow;
       if (action.flow) {
-        const known = new Set(state.flow.map((step) => step.id));
-        next.flow = [...state.flow, ...action.flow.filter((step) => !known.has(step.id))];
+        const known = new Set(baseFlow.map((step) => step.id));
+        next.flow = [...baseFlow, ...action.flow.filter((step) => !known.has(step.id))];
       }
       return next;
     }
@@ -477,6 +481,12 @@ export function actionForBackendEvent(event: BackendEventEnvelope): Investigatio
           decisionCopy: first
             ? `${str(first.code) || "Fault"} on ${str(first.equipment) || "equipment"} (${str(first.severity) || "unknown"}).`
             : "Watchdog trigger fired. Phase 1 starting.",
+          // A new incident starts a clean board — wipe the previous run's
+          // evidence, flow, and agent states (replayed histories can contain
+          // several runs back to back).
+          agents: IDLE_AGENTS,
+          evidence: [],
+          flow: [],
         },
         evidence: [
           {

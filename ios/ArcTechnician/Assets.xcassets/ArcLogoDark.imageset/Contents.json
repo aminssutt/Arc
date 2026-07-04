@@ -1,13 +1,15 @@
 {
-  "images": [
+  "images" : [
     {
-      "filename": "arc-logo-dark.png",
-      "idiom": "universal",
-      "scale": "1x"
+      "filename" : "arc-logo-dark.svg",
+      "idiom" : "universal"
     }
   ],
-  "info": {
-    "author": "xcode",
-    "version": 1
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  },
+  "properties" : {
+    "preserves-vector-representation" : true
   }
 }

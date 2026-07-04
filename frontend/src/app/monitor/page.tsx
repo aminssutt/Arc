@@ -78,23 +78,23 @@ export default function MonitorPage() {
   const timersRef = useRef<number[]>([]);
   const streamAbortRef = useRef<AbortController | null>(null);
   const scenarioRef = useRef<DemoScenario | "live">("live");
-  const reportedRef = useRef(false);
+  const reportedCaseRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!getSession()) router.replace("/login?next=/monitor");
   }, [router]);
 
-  // Archive the action report and raise the modal exactly once per case.
+  // Archive the action report and raise the modal exactly once per case —
+  // keyed by case id so back-to-back runs each get their own report.
   useEffect(() => {
-    if (state.caseStatus === "resolved" && !reportedRef.current) {
-      reportedRef.current = true;
+    if (state.caseStatus === "resolved" && reportedCaseRef.current !== state.caseId) {
+      reportedCaseRef.current = state.caseId;
       const operator = getSession()?.name ?? "operator";
       const nextReport = buildReport(state, scenarioRef.current, operator);
       saveReport(nextReport);
       setReport(nextReport);
       setModalOpen(true);
     }
-    if (state.caseStatus === "monitoring") reportedRef.current = false;
   }, [state]);
 
   const clearTimers = useCallback(() => {
@@ -156,6 +156,43 @@ export default function MonitorPage() {
     [clearTimers, streaming],
   );
 
+  // Reconnects with a capped backoff whenever the stream drops (backend
+  // restart, network blip, backend not up yet). Reconnecting from scratch is
+  // safe: the backend replays event history and the reducer dedupes by id.
+  const startStream = useCallback(() => {
+    if (streamAbortRef.current) return;
+
+    const abort = new AbortController();
+    streamAbortRef.current = abort;
+    setStreaming(true);
+    setStreamNote(null);
+    scenarioRef.current = "live";
+
+    const connect = (attempt: number) => {
+      if (abort.signal.aborted) return;
+      new BackendClient(backendURL)
+        .streamEvents((event) => {
+          const action = actionForBackendEvent(event);
+          if (action) dispatch(action);
+        }, abort.signal)
+        .then(() => {
+          // Server closed the stream cleanly — reconnect immediately.
+          if (!abort.signal.aborted) connect(0);
+        })
+        .catch((error: unknown) => {
+          if (abort.signal.aborted) return;
+          const delay = Math.min(1000 * 2 ** attempt, 10000);
+          setStreamNote(
+            `${error instanceof Error ? error.message : "stream failed"} — retrying in ${Math.round(delay / 1000)}s`,
+          );
+          const timer = window.setTimeout(() => connect(attempt + 1), delay);
+          timersRef.current.push(timer);
+        });
+    };
+
+    connect(0);
+  }, []);
+
   const toggleStream = useCallback(() => {
     if (streaming) {
       streamAbortRef.current?.abort();
@@ -164,23 +201,13 @@ export default function MonitorPage() {
       setStreamNote(null);
       return;
     }
-    const abort = new AbortController();
-    streamAbortRef.current = abort;
-    setStreaming(true);
-    setStreamNote(null);
-    scenarioRef.current = "live";
-    new BackendClient(backendURL)
-      .streamEvents((event) => {
-        const action = actionForBackendEvent(event);
-        if (action) dispatch(action);
-      }, abort.signal)
-      .catch((error: unknown) => {
-        if (!abort.signal.aborted) {
-          setStreamNote(error instanceof Error ? error.message : "stream failed");
-          setStreaming(false);
-        }
-      });
-  }, [streaming]);
+    startStream();
+  }, [startStream, streaming]);
+
+  useEffect(() => {
+    if (!getSession()) return;
+    startStream();
+  }, [startStream]);
 
   useEffect(
     () => () => {

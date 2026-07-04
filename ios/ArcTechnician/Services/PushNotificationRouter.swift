@@ -49,6 +49,11 @@ final class PushNotificationRouter: ObservableObject {
         lastError = nil
     }
 
+    func clearIncident() {
+        currentIncident = nil
+        lastError = nil
+    }
+
     func sendLocalTestNotification() {
         let content = UNMutableNotificationContent()
         content.title = "Arc field validation"

@@ -52,7 +52,11 @@ struct FieldMeasurement: Codable, Equatable, Identifiable {
 }
 
 extension ValidationSubmission {
-    static func demoPayload(for incident: IncidentPushPayload, verdict: ValidationVerdict) -> ValidationSubmission {
+    static func demoPayload(
+        for incident: IncidentPushPayload,
+        verdict: ValidationVerdict,
+        measuredVoltage: Double? = nil
+    ) -> ValidationSubmission {
         ValidationSubmission(
             incidentId: incident.incidentId,
             clientEventId: "ios-\(UUID().uuidString)",
@@ -62,7 +66,7 @@ extension ValidationSubmission {
                 FailureValidation(failureId: failure.id, verdict: verdict, note: nil)
             },
             measurements: [
-                FieldMeasurement(metric: "dc_plant_voltage_v", point: "busbar", value: 43.9, unit: "V")
+                FieldMeasurement(metric: "dc_plant_voltage_v", point: "busbar", value: measuredVoltage ?? 43.9, unit: "V")
             ]
         )
     }

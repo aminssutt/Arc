@@ -57,6 +57,18 @@ struct ResetResponse: Codable, Equatable {
     let status: String
 }
 
+struct DemoEventsResponse: Codable, Equatable {
+    let state: String
+    let incidentId: String?
+    let events: [BackendEventEnvelope]
+
+    enum CodingKeys: String, CodingKey {
+        case state
+        case incidentId = "incident_id"
+        case events
+    }
+}
+
 struct BackendEventEnvelope: Codable, Equatable, Identifiable {
     let seq: Int
     let id: String
