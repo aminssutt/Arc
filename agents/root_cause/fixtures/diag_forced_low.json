@@ -1,0 +1,29 @@
+{
+  "incident_id": "INC-DEMO-AMBIGUOUS-002",
+  "site_id": "SITE-PAR-014",
+  "failure_family": "energy",
+  "context": {
+    "fault": {
+      "site": {"id": "SITE-PAR-014", "name": "Paris Nord 14"},
+      "family": "energy",
+      "failures": [
+        {
+          "id": "F1",
+          "code": "PWR-DC-UV",
+          "severity": "critical",
+          "equipment": "busbar",
+          "metric": "dc_plant_voltage_v",
+          "value": 44.8,
+          "first_seen": "2026-07-05T09:20:00Z"
+        }
+      ],
+      "trigger": {"rule": "undervoltage_major", "debounce_s": 60}
+    },
+    "correlation": {
+      "site_id": "SITE-PAR-014",
+      "equipment": ["EQ-PAR-014-PP-1"],
+      "localized_to": null,
+      "blast_radius": "unclear — single supervision-card sensing path, no thermal corroboration"
+    }
+  }
+}
