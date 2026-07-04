@@ -12,6 +12,9 @@ Correlation runs offline (deterministic taxonomy plan when no Vultr client is
 injected); the retriever, when present, adds the citation trail. Backend lane —
 ``/agents`` is untouched.
 """
+import json
+import os
+import tempfile
 from typing import Any
 
 from contracts import AgentInput, AgentOutput
@@ -19,12 +22,41 @@ from contracts import AgentInput, AgentOutput
 from agents.correlation.agent import CorrelationAgent
 
 
+def _build_correlation_agent(vultr: Any, retriever: Any, seeds: Any) -> CorrelationAgent:
+    """Construct the CorrelationAgent with a topology built from the CURRENT seeds.
+
+    The agent's bundled fixture is a static copy of /data that drifts when the
+    seeds are renamed (e.g. the PAR-021-NORD audit), making correlation fail to
+    localize on the real demo site. Building the topology from the loaded seeds
+    is the single source of truth — no drift. The agent reads the topology file
+    once at construction, so the temp file is removed immediately after.
+    """
+    if seeds is None:
+        return CorrelationAgent(vultr, retriever)  # backwards-compatible fixture path
+
+    topo = {
+        "sites": [dict(s) for s in seeds.sites.values()],
+        "equipment": [{**dict(e), "parent_id": (e.get("parent_id") or None)}
+                      for e in seeds.equipment.values()],
+    }
+    f = tempfile.NamedTemporaryFile("w", suffix="_arc_topology.json", delete=False, encoding="utf-8")
+    try:
+        json.dump(topo, f)
+        f.close()
+        return CorrelationAgent(vultr, retriever, topology_path=f.name)  # read at __init__
+    finally:
+        try:
+            os.unlink(f.name)
+        except OSError:
+            pass
+
+
 class CorrelationAgentAdapter:
     name = "correlation"
 
-    def __init__(self, vultr: Any = None, retriever: Any = None) -> None:
+    def __init__(self, vultr: Any = None, retriever: Any = None, *, seeds: Any = None) -> None:
         # No system_prompt override: the agent uses its own tuned prompt.md.
-        self._inner = CorrelationAgent(vultr, retriever)
+        self._inner = _build_correlation_agent(vultr, retriever, seeds)
 
     async def run(self, data: AgentInput) -> AgentOutput:
         out = await self._inner.run(data)
