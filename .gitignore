@@ -48,7 +48,9 @@ Packages/
 *.dSYM
 
 # Env / tooling
-.python-version
+# .python-version is force-tracked (Python pin, #90): a user-global gitignore
+# ignores it, and a repo .gitignore negation overrides that for every dev.
+!.python-version
 .node-version
 
 # Editors / IDE
