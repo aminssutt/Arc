@@ -302,11 +302,12 @@ class Orchestrator:
         self._transition(PHASE2)
         self.bus.emit(inc["id"], "phase_started", {"phase": 2, "cause": "initial"})
 
+        suspect_part = self._suspect_part()  # topology-resolved catalog part (seed lookup)
         rem = await self._run_agent("remediation", 2, {
             "failures": inc["failures"],
             "diagnostic": inc["diagnostic"],
             "validation_result": inc["validation_result"],
-            "suspect_part": self._suspect_part(),
+            "suspect_part": suspect_part,
         })
         if rem is None:
             await self._terminate_degraded("remediation")  # never leave the incident stuck
@@ -320,8 +321,20 @@ class Orchestrator:
         })
 
         hints = rem.payload.get("action_hints", [])
+        # Lead the Inventory lookup with the TOPOLOGY-resolved catalog part: Remediation
+        # emits free-text part names (LLM) that miss the exact-match inventory get(), so
+        # the report showed qty 0 / in_stock false for a part that is actually in stock.
+        # The free-text parts still follow (kept for the report/context).
+        rem_parts = rem.payload.get("parts", [])
+        cid_parts = list(rem_parts)
+        if suspect_part and not any(
+                isinstance(p, dict) and (p.get("part_no") or p.get("part_number")) == suspect_part
+                for p in rem_parts):
+            cid_parts.insert(0, {"part_no": suspect_part,
+                                 "description": "topology-matched spare", "qty": 1})
         cid = await self._run_agent("cost_inventory_dispatch", 2, {
-            "parts": rem.payload.get("parts", []),
+            "parts": cid_parts,
+            "suspect_part": suspect_part,
             "remediation_title": rem.payload.get("procedure", {}).get("title", rem.summary),
             "top_priority": hints[0]["priority"] if hints else "P1",
         })
