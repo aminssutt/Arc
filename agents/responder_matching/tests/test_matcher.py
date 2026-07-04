@@ -1,112 +1,136 @@
-"""Unit tests for the deterministic responder matcher + the agent."""
+"""Unit tests for the difficulty-routed, zone-preferred single-responder matcher."""
 
 import asyncio
 import json
 import pathlib
 
 from contracts.agent_interface import Agent, AgentInput, AgentOutput
-from agents.responder_matching import ResponderMatchingAgent, match_responders, score_employee
-from agents.responder_matching.matcher import REFERENCE_DATE
+from agents.responder_matching import (
+    ResponderMatchingAgent, employee_level, fault_difficulty, match_responder,
+)
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 ROSTER = json.loads((ROOT / "data" / "employees.json").read_text(encoding="utf-8"))
 BY_ID = {e["employee_id"]: e for e in ROSTER}
-
 AS_OF = "2026-07-04"
-DC_UV = {"family": "energy", "equipment_class": "rectifier", "code": "PWR-DC-UV"}
+
+
+def _m(fault):
+    return match_responder(ROSTER, fault, as_of=AS_OF)
 
 
 # --------------------------------------------------------------------------- #
-# Matcher
+# Difficulty routing
 # --------------------------------------------------------------------------- #
-def test_top_match_is_the_right_specialist():
-    out = match_responders(ROSTER, DC_UV, as_of=AS_OF)
-    assert out[0]["employee_id"] == "EMP-001"        # 3 prior PWR-DC-UV fixes
-    assert 2 <= len(out) <= 3
-    assert out[0]["score"] > out[-1]["score"]
+def test_simple_task_goes_to_a_junior_in_zone():
+    r = _m({"family": "energy", "equipment_class": "rectifier", "code": "PWR-FUSE-BLOWN", "region": "IDF-North"})
+    assert r["employee_id"] == "EMP-004" and r["tier"] == "junior"
 
 
-def test_only_available_are_returned():
-    out = match_responders(ROSTER, DC_UV, as_of=AS_OF)
-    assert all(r["status"] == "available" for r in out)
-    assert "EMP-005" not in {r["employee_id"] for r in out}   # on_job specialist excluded
+def test_complex_task_goes_to_a_senior_in_zone():
+    r = _m({"family": "energy", "equipment_class": "rectifier", "code": "PWR-GRID-LOSS", "region": "IDF-North"})
+    assert r["employee_id"] == "EMP-003" and r["tier"] == "senior"
 
 
-def test_reason_is_explainable():
-    out = match_responders(ROSTER, DC_UV, as_of=AS_OF)
-    reason = out[0]["reason"]
-    assert "famille energy" in reason and "fix(es) similaire" in reason
-    assert out[0]["matched_skills"]
+def test_medium_task_goes_to_mid_level_not_the_senior():
+    r = _m({"family": "energy", "equipment_class": "rectifier", "code": "PWR-DC-UV", "region": "IDF-East"})
+    assert r["employee_id"] == "EMP-006" and r["tier"] == "confirmé"
 
 
-def test_off_domain_senior_scores_below_floor():
-    # EMP-024: 16y multi-domain lead, but no rf skill -> must not clear the floor for rf.
-    score, _ = score_employee(BY_ID["EMP-024"],
-                              {"family": "rf", "equipment_class": "feeder", "code": "RF-VSWR-HIGH"},
-                              as_of=AS_OF)
-    assert score < 0.25
+def test_explicit_difficulty_override_reroutes():
+    base = {"family": "energy", "equipment_class": "rectifier", "code": "PWR-DC-UV", "region": "IDF-North"}
+    simple = _m({**base, "difficulty": "simple"})
+    complex_ = _m({**base, "difficulty": "complex"})
+    assert simple["level"] < complex_["level"]      # simple → less experienced than complex
 
 
-def test_no_confident_responder_returns_empty():
-    # A family nobody available specializes in -> empty (escalate), not a wrong page.
-    out = match_responders(ROSTER, {"family": "satellite", "equipment_class": "vsat", "code": "SAT-DOWN"}, as_of=AS_OF)
-    assert out == []
+# --------------------------------------------------------------------------- #
+# Zone workflow (preferred, with incompatibility fallback)
+# --------------------------------------------------------------------------- #
+def test_in_zone_is_preferred():
+    r = _m({"family": "transport", "equipment_class": "router", "code": "TRN-BACKHAUL-DOWN", "region": "IDF-North"})
+    assert r["region"] == "IDF-North" and r["out_of_zone"] is False
 
 
-def test_seniority_is_deterministic_via_as_of():
-    a = match_responders(ROSTER, DC_UV, as_of="2026-07-04")
-    b = match_responders(ROSTER, DC_UV, as_of="2026-07-04")
-    assert a == b
+def test_out_of_zone_fallback_when_none_available_in_zone():
+    # IDF-South has only EMP-005 (energy, on_job) -> must fall back out of zone.
+    r = _m({"family": "energy", "equipment_class": "rectifier", "code": "PWR-GRID-LOSS", "region": "IDF-South"})
+    assert r["out_of_zone"] is True
+    assert r["region"] != "IDF-South" and r["tier"] == "senior"
+
+
+def test_region_agnostic_when_no_region_given():
+    r = _m({"family": "rf", "equipment_class": "feeder", "code": "RF-VSWR-HIGH"})
+    assert r is not None and r["out_of_zone"] is False
+
+
+# --------------------------------------------------------------------------- #
+# Competence gate / negative controls
+# --------------------------------------------------------------------------- #
+def test_off_domain_lead_never_picked():
+    r = _m({"family": "rf", "equipment_class": "feeder", "code": "RF-VSWR-HIGH", "region": "IDF-East"})
+    assert r["employee_id"] != "EMP-024"            # multi-domain lead has no rf skill
+
+
+def test_unavailable_never_picked():
+    r = _m({"family": "energy", "equipment_class": "rectifier", "code": "PWR-DC-UV", "region": "IDF-South"})
+    assert r["employee_id"] != "EMP-005"            # on_job specialist excluded
+
+
+def test_no_eligible_returns_none():
+    assert _m({"family": "satellite", "equipment_class": "vsat", "code": "SAT-DOWN", "region": "IDF-North"}) is None
+
+
+def test_level_rises_with_seniority_and_tasks():
+    assert employee_level(BY_ID["EMP-004"], as_of=AS_OF) < employee_level(BY_ID["EMP-003"], as_of=AS_OF)
+
+
+def test_difficulty_lookup():
+    assert fault_difficulty({"code": "PWR-GRID-LOSS"}) == "complex"
+    assert fault_difficulty({"code": "PWR-FUSE-BLOWN"}) == "simple"
+    assert fault_difficulty({"code": "PWR-DC-UV"}) == "medium"
+    assert fault_difficulty({"code": "UNKNOWN"}) == "medium"
 
 
 # --------------------------------------------------------------------------- #
 # Agent
 # --------------------------------------------------------------------------- #
-def _run(agent, ctx):
-    inp = AgentInput(incident_id="INC-1", site_id="SITE-PAR-014", failure_family=ctx.get("fault", {}).get("family", "energy"), context=ctx)
-    return asyncio.run(agent.run(inp))
+def _run(agent, ctx, family="energy"):
+    return asyncio.run(agent.run(AgentInput(incident_id="INC-1", site_id="SITE", failure_family=family, context=ctx)))
 
 
 def test_agent_satisfies_protocol():
     assert isinstance(ResponderMatchingAgent(roster=ROSTER, as_of=AS_OF), Agent)
 
 
-def test_agent_emits_notify_list_and_responders():
+def test_agent_notifies_exactly_one():
     agent = ResponderMatchingAgent(roster=ROSTER, as_of=AS_OF)
-    out = _run(agent, {"fault": DC_UV})
+    out = _run(agent, {"fault": {"family": "energy", "equipment_class": "rectifier", "code": "PWR-GRID-LOSS", "region": "IDF-North"}})
     assert isinstance(out, AgentOutput)
-    assert out.payload["notify"][0] == "EMP-001"
-    assert 2 <= len(out.payload["notify"]) <= 3
+    assert out.payload["notify"] == ["EMP-003"]
     assert out.payload["escalate"] is False
+    assert out.payload["difficulty"] == "complex"
     json.loads(out.model_dump_json())
 
 
-def test_agent_derives_fault_from_findings():
-    # No explicit fault -> derive from correlation equipment_class + failure code.
+def test_agent_flags_out_of_zone():
     agent = ResponderMatchingAgent(roster=ROSTER, as_of=AS_OF)
-    out = _run(agent, {
-        "findings": {"correlation": {"equipment_class": "rectifier"}},
-        "failures": [{"id": "F1", "code": "PWR-DC-UV"}],
-    })
-    assert out.payload["notify"][0] == "EMP-001"
+    out = _run(agent, {"fault": {"family": "energy", "equipment_class": "rectifier", "code": "PWR-GRID-LOSS", "region": "IDF-South"}})
+    assert out.payload["out_of_zone"] is True
+    assert len(out.payload["notify"]) == 1
 
 
 def test_agent_escalates_when_no_match():
     agent = ResponderMatchingAgent(roster=ROSTER, as_of=AS_OF)
-    out = _run(agent, {"fault": {"family": "satellite", "equipment_class": "vsat", "code": "SAT-DOWN"}})
-    assert out.payload["escalate"] is True
-    assert out.payload["notify"] == []
-    assert out.confidence == 0.0
+    out = _run(agent, {"fault": {"family": "satellite", "equipment_class": "vsat", "code": "SAT-DOWN", "region": "IDF-North"}}, family="satellite")
+    assert out.payload["escalate"] is True and out.payload["notify"] == []
 
 
-def test_optional_semantic_rerank_blends():
-    async def scorer(fault_text, employee_texts):
-        # Boost whoever is listed last, to prove the blend reorders.
-        return [0.0] * (len(employee_texts) - 1) + [1.0]
-
-    base = ResponderMatchingAgent(roster=ROSTER, as_of=AS_OF)
-    base_out = _run(base, {"fault": DC_UV})
-    reranked = ResponderMatchingAgent(roster=ROSTER, as_of=AS_OF, semantic_scorer=scorer, semantic_weight=0.9)
-    rr_out = _run(reranked, {"fault": DC_UV})
-    assert rr_out.payload["notify"] != base_out.payload["notify"]     # rerank changed the order
-    assert "semantic_score" in rr_out.payload["responders"][0]
+def test_agent_derives_fault_from_findings():
+    agent = ResponderMatchingAgent(roster=ROSTER, as_of=AS_OF)
+    out = _run(agent, {
+        "findings": {"correlation": {"equipment_class": "rectifier"}},
+        "failures": [{"id": "F1", "code": "PWR-GRID-LOSS"}],
+        "site": {"region": "IDF-North"},
+    })
+    assert out.payload["notify"] == ["EMP-003"]

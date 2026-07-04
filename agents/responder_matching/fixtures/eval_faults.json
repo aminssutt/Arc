@@ -1,28 +1,38 @@
 {
   "as_of": "2026-07-04",
-  "note": "Labeled fault -> correct available responder(s). Calibration tunes the weights; holdout is untouched and reports the honest number (mirrors validation/EVAL_SPEC.md).",
-  "calibration": [
-    {"id": "C1", "fault": {"family": "energy", "equipment_class": "rectifier", "code": "PWR-DC-UV"}, "correct": ["EMP-001", "EMP-003", "EMP-004"]},
-    {"id": "C2", "fault": {"family": "energy", "equipment_class": "battery_string", "code": "PWR-BATT-DEGRADED"}, "correct": ["EMP-002"]},
-    {"id": "C3", "fault": {"family": "energy", "equipment_class": "rectifier", "code": "PWR-GRID-LOSS"}, "correct": ["EMP-003", "EMP-001"]},
-    {"id": "C4", "fault": {"family": "energy", "equipment_class": "rectifier", "code": "PWR-FUSE-BLOWN"}, "correct": ["EMP-006"]},
-    {"id": "C5", "fault": {"family": "environment", "equipment_class": "hvac", "code": "ENV-HVAC-FAIL"}, "correct": ["EMP-007", "EMP-008"]},
-    {"id": "C6", "fault": {"family": "environment", "equipment_class": "radio", "code": "ENV-THERMAL-SHUT"}, "correct": ["EMP-007", "EMP-008", "EMP-011"]},
-    {"id": "C7", "fault": {"family": "environment", "equipment_class": "cabinet", "code": "ENV-WATER"}, "correct": ["EMP-009"]},
-    {"id": "C8", "fault": {"family": "rf", "equipment_class": "feeder", "code": "RF-VSWR-HIGH"}, "correct": ["EMP-012", "EMP-025"]},
-    {"id": "C9", "fault": {"family": "rf", "equipment_class": "radio", "code": "RF-CELL-DOWN"}, "correct": ["EMP-013", "EMP-025"]},
-    {"id": "C10", "fault": {"family": "rf", "equipment_class": "gps", "code": "RF-GPS-LOSS"}, "correct": ["EMP-014", "EMP-017"]},
-    {"id": "C11", "fault": {"family": "transport", "equipment_class": "router", "code": "TRN-BACKHAUL-DOWN"}, "correct": ["EMP-018", "EMP-021"]},
-    {"id": "C12", "fault": {"family": "transport", "equipment_class": "router", "code": "TRN-DEGRADED"}, "correct": ["EMP-020", "EMP-021"]},
-    {"id": "C13", "fault": {"family": "transport", "equipment_class": "router", "code": "TRN-ROUTER-FAIL"}, "correct": ["EMP-019", "EMP-021"]}
-  ],
-  "holdout": [
-    {"id": "H1", "fault": {"family": "energy", "equipment_class": "rectifier", "code": "PWR-RECT-FAIL"}, "correct": ["EMP-001", "EMP-003"]},
-    {"id": "H2", "fault": {"family": "rf", "equipment_class": "radio", "code": "RF-CELL-DOWN"}, "correct": ["EMP-013", "EMP-025", "EMP-016"]},
-    {"id": "H3", "fault": {"family": "transport", "equipment_class": "router", "code": "TRN-BACKHAUL-DOWN"}, "correct": ["EMP-018", "EMP-021"]}
+  "note": "Difficulty-routed single-responder scenarios (mirrors validation/EVAL_SPEC.md). Each expects exactly ONE notified employee, chosen by difficulty→level with zone preference. Not ML training.",
+  "scenarios": [
+    {"id": "S1", "desc": "simple energy in-zone → junior gains experience",
+     "fault": {"family": "energy", "equipment_class": "rectifier", "code": "PWR-FUSE-BLOWN", "region": "IDF-North"},
+     "expect": "EMP-004", "expect_tier": "junior", "expect_out_of_zone": false},
+    {"id": "S2", "desc": "complex energy in-zone → senior",
+     "fault": {"family": "energy", "equipment_class": "rectifier", "code": "PWR-GRID-LOSS", "region": "IDF-North"},
+     "expect": "EMP-003", "expect_tier": "senior", "expect_out_of_zone": false},
+    {"id": "S3", "desc": "complex energy, nobody available in-zone → senior OUT of zone",
+     "fault": {"family": "energy", "equipment_class": "rectifier", "code": "PWR-GRID-LOSS", "region": "IDF-South"},
+     "expect": "EMP-002", "expect_tier": "senior", "expect_out_of_zone": true},
+    {"id": "S4", "desc": "simple transport in-zone → junior",
+     "fault": {"family": "transport", "equipment_class": "router", "code": "TRN-ROUTER-FAIL", "region": "IDF-North"},
+     "expect": "EMP-022", "expect_tier": "junior", "expect_out_of_zone": false},
+    {"id": "S5", "desc": "complex transport in-zone → senior",
+     "fault": {"family": "transport", "equipment_class": "router", "code": "TRN-BACKHAUL-DOWN", "region": "IDF-North"},
+     "expect": "EMP-018", "expect_tier": "senior", "expect_out_of_zone": false},
+    {"id": "S6", "desc": "complex rf in-zone → senior",
+     "fault": {"family": "rf", "equipment_class": "feeder", "code": "RF-VSWR-HIGH", "region": "IDF-North"},
+     "expect": "EMP-012", "expect_tier": "senior", "expect_out_of_zone": false},
+    {"id": "S7", "desc": "medium energy in-zone → mid-level (not the senior)",
+     "fault": {"family": "energy", "equipment_class": "rectifier", "code": "PWR-DC-UV", "region": "IDF-East"},
+     "expect": "EMP-006", "expect_tier": "confirmé", "expect_out_of_zone": false},
+    {"id": "S8", "desc": "medium environment in-zone",
+     "fault": {"family": "environment", "equipment_class": "hvac", "code": "ENV-HVAC-FAIL", "region": "IDF-East"},
+     "expect": "EMP-008", "expect_out_of_zone": false}
   ],
   "negative_controls": [
-    {"id": "N1", "fault": {"family": "rf", "equipment_class": "feeder", "code": "RF-VSWR-HIGH"}, "must_not_notify": ["EMP-024"], "why": "high-seniority multi-domain lead with NO rf skill must not be paged for an rf fault"},
-    {"id": "N2", "fault": {"family": "energy", "equipment_class": "rectifier", "code": "PWR-DC-UV"}, "must_exclude_status": ["on_job", "off"], "why": "unavailable specialists (EMP-005 on_job) are never notified"}
+    {"id": "N1", "desc": "off-domain multi-domain lead must NOT be paged for rf",
+     "fault": {"family": "rf", "equipment_class": "feeder", "code": "RF-VSWR-HIGH", "region": "IDF-East"},
+     "must_not_notify": "EMP-024"},
+    {"id": "N2", "desc": "no eligible person anywhere → escalate (no wrong page)",
+     "fault": {"family": "satellite", "equipment_class": "vsat", "code": "SAT-DOWN", "region": "IDF-North"},
+     "expect_escalate": true}
   ]
 }

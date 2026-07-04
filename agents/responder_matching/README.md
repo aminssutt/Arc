@@ -3,54 +3,57 @@
 **Owner:** aminssutt · **Feature:** employee-matching
 
 When a fault is **diagnosed** (after Root-Cause: `failure_family` + equipment +
-cause), this component ranks the workforce and returns the **top 2–3 available
-employees** best placed to fix it, each with an explainable reason, plus the
-**notification decision** (`payload.notify` = employee ids to push to).
+cause + difficulty), this component picks the **single** best employee to notify,
+**routed by task difficulty** and respecting the **zone** workflow.
 
-## Pieces
-| File | What |
-|---|---|
-| `matcher.py` | Pure deterministic scoring (`score_employee`, `match_responders`). No LLM, no network. |
-| `agent.py` | `ResponderMatchingAgent` — conforms to `contracts.Agent`; reads the fault from the envelope, matches, returns responders + `notify`. Optional semantic re-rank hook. |
-| `fixtures/eval_faults.json` | Labeled `fault → correct responder(s)`: calibration + held-out split + negative controls. |
-| `data/employees.json` | The roster (25 employees) — lives in `/data`, schema in `data/schema.md`. |
+## Routing rules
+- **Difficulty → level.** Each fault has a difficulty (`simple` / `medium` /
+  `complex`, from `code` or explicit). Difficulty routes to an experience level:
+  - **simple → junior/newcomer** (they gain experience),
+  - **complex → most experienced / best-adapted**,
+  - **medium → mid-level (confirmé)**.
+- **Competence is a hard gate.** Only employees in the fault's family or with a
+  required skill are eligible — a junior gets a *simple* task **in their domain**,
+  never a random one.
+- **Zone preserved, with fallback.** The responder in the site's own `region`
+  wins; **except** when nobody eligible is available in-zone → the best
+  out-of-zone responder is picked and flagged `out_of_zone` (the senior-in-zone-B
+  case).
+- **Only `available`** employees; if nobody eligible anywhere → **escalate**.
 
-## Score
+## Score (among eligible)
 ```
-score = 0.55 · skill_score        # skill/family fit for THIS fault (alarm code → required skills)
-      + 0.15 · seniority_score    # years since seniority_start, capped at 12y (as_of is passed in)
-      + 0.30 · history_score      # count of prior resolved faults of the same family/equipment/code
+level = 0.5·min(seniority_years/12, 1) + 0.5·min(tasks_completed/120, 1)
+score = 0.5·competence + 0.5·difficulty_fit      # difficulty_fit = 1 - |level - target|
+                                                 # target: simple 0.15 / medium 0.5 / complex 0.9
 ```
-Only `status == "available"` employees are eligible. A **confidence floor**
-(`min_score = 0.25`) means an off-domain senior is **not** paged, and a family
-nobody available covers returns **empty → escalate** (never a wrong page).
+Every pick carries an explainable `reason` (difficulty, tier, level, competence, zone).
+
+## Data
+`data/employees.json` (25 employees) adds to the roster: `region`,
+`tasks_completed` (experience volume), on top of `role`, `skills`, `families`,
+`seniority_start`, `resolved` history, `status`. Schema in `data/schema.md §8`.
 
 ## Evaluation (mirrors `validation/EVAL_SPEC.md` — not ML training)
-25 employees, 13 calibration faults + 3 held-out + 2 negative controls. Metric =
-top-k hit (a correct employee in the top-k).
+8 labeled difficulty/zone scenarios + 2 negative controls. **top-1 exact = 8/8**;
+tier + zone flags correct; simple tasks route strictly below complex tasks;
+negative controls pass (off-domain lead never paged, unknown family → escalate).
 
-| Split | top-2 | top-3 |
-|---|---|---|
-| Calibration | 0.92 | **1.00** |
-| Held-out (unseen) | 1.00 | **1.00** |
-
-Negative controls pass: a high-seniority multi-domain lead with no RF skill is
-not paged for an RF fault; unavailable specialists are never notified.
+| Scenario | route |
+|---|---|
+| simple energy in-zone | **junior** EMP-004 |
+| complex energy in-zone | **senior** EMP-003 |
+| complex energy, none in-zone | **senior out-of-zone** EMP-002 |
+| medium energy in-zone | **mid-level** EMP-006 |
 
 ## Where it plugs in (proposed, not yet wired)
-- Runs **after Root-Cause** (needs the diagnosed family/equipment/cause).
-- Conforms to `contracts.Agent`, so it drops into the orchestrator registry like
-  the other agents; its `payload` rides the existing `agent_completed` event —
-  **no change to the frozen event contract**.
+- Runs **after Root-Cause**; conforms to `contracts.Agent` → drops into the
+  orchestrator registry; its `payload` (`notify` = the one employee id, plus
+  `responder`, `difficulty`, `out_of_zone`, `alternatives`) rides the existing
+  `agent_completed` event — **no change to the frozen event contract**.
 - **Notification hookup (backend follow-up, coordinate with simerugby):** extend
-  `PushService` to push to `payload.notify` (cap 3) and, if wanted, add a
-  `responders_notified` event — that touches the frozen event schema, so it's a
-  contract change to agree on, kept OUT of this feature.
-
-## Optional semantic re-rank
-Inject `semantic_scorer` (async `(fault_text, [employee_text]) -> [0..1]`, e.g.
-Vultr embeddings over the employees' free-text `resolved` history) to blend a
-similarity signal. Default `None` → fully deterministic and offline.
+  `PushService` to push to `payload.notify` (a single recipient), optionally a
+  `responder_notified` event — that touches the frozen event schema, so kept out.
 
 ## Test (from repo root)
 ```bash

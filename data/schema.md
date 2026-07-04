@@ -418,8 +418,10 @@ Sample rows (a demo-cited subset; the full 35-source set lives in `DATA_MANIFEST
 
 ## 8. Employees / responder roster
 
-Workforce the **responder-matching** step ranks to notify the 2–3 people best
-placed to fix a diagnosed fault. File: `employees.json` (JSON array).
+Workforce the **responder-matching** step ranks to notify the **single** person
+best placed to fix a diagnosed fault, **routed by task difficulty** (simple →
+junior, complex → senior, medium → mid-level) and **zone**. File:
+`employees.json` (JSON array).
 
 | Field | Type | Notes |
 |---|---|---|
@@ -427,20 +429,28 @@ placed to fix a diagnosed fault. File: `employees.json` (JSON array).
 | `name` | string | Display name for the notification. |
 | `role` | string | Exact job/role in the company. |
 | `status` | enum | `available` \| `on_job` \| `off` — only `available` is notified. |
+| `region` | string | Work zone, e.g. `IDF-North` (aligns with `sites.region`). Drives zone-preference-with-fallback. |
 | `families` | list(enum) | Fault families they cover (`energy`/`environment`/`rf`/`transport`). |
 | `skills` | list(string) | Canonical skills (`power`, `rectifier`, `hvac`, `rf`, `feeder`, `backhaul`, …). |
-| `seniority_start` | date (ISO) | Start date → drives the seniority score (evaluated at a passed-in `as_of`, never `today()`). |
-| `resolved` | list(obj) | History of fixes: `{date, family, code, equipment_class, summary}` — the strongest match signal. |
+| `seniority_start` | date (ISO) | Start date → half the experience level (evaluated at a passed-in `as_of`, never `today()`). |
+| `tasks_completed` | int | Total tasks done → the other half of the experience level. |
+| `resolved` | list(obj) | Detailed fix history: `{date, family, code, equipment_class, summary}`. |
 
 Sample row:
 ```json
 { "employee_id": "EMP-001", "name": "Nadia Cherif",
-  "role": "Ingénieure énergie / plant DC -48V", "status": "available",
+  "role": "Ingénieure énergie / plant DC -48V", "status": "available", "region": "IDF-North",
   "families": ["energy"], "skills": ["power", "rectifier", "battery"],
-  "seniority_start": "2018-03-01",
+  "seniority_start": "2018-03-01", "tasks_completed": 85,
   "resolved": [ { "date": "2026-02-11", "family": "energy", "code": "PWR-DC-UV",
                   "equipment_class": "rectifier", "summary": "remplacement module Flatpack2" } ] }
 ```
+
+**Difficulty** is a fault attribute (`simple`/`medium`/`complex`), from the alarm
+`code` (matcher `CODE_DIFFICULTY`) or explicit. The matcher gates on competence
+(family/skill), routes the difficulty to the matching experience level, prefers
+the site's `region`, and only falls back out-of-zone when nobody eligible is
+available in-zone.
 
 > **Coordination — one source of truth.** `employees` overlaps `crew_schedule.csv`
 > (§5, backend, Crew Dispatch): both describe people with `skills` + `status`.
