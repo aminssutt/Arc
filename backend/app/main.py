@@ -13,6 +13,7 @@ from backend.app.push_service import PushService
 from backend.app.seeds import load_seeds
 from backend.app.settings import settings
 from backend.app.tools import CostEngineTool, CrewDispatchTool, InventoryLookupTool
+from backend.app.validation_adapter import ValidationAgentAdapter
 from backend.app.watchdog import Watchdog
 
 
@@ -30,8 +31,10 @@ async def lifespan(app: FastAPI):
     app.state.tools = {t.name: t for t in (cost, inventory, dispatch)}
 
     push = PushService(app.state.bus, settings)
-    orchestrator = Orchestrator(app.state.bus, app.state.seeds,
-                                default_registry(cost, inventory, dispatch),
+    registry = default_registry(cost, inventory, dispatch)
+    # REAL agents replace dummies here as their lanes land (registry handoff):
+    registry["validation"] = ValidationAgentAdapter(app.state.seeds)  # aminssutt's AGA.1
+    orchestrator = Orchestrator(app.state.bus, app.state.seeds, registry,
                                 push, agent_timeout_s=settings.agent_timeout_s)
     watchdog = Watchdog(app.state.seeds, orchestrator.handle_fault, orchestrator.add_failures)
     orchestrator.on_incident_closed = watchdog.incident_closed
