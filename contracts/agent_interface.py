@@ -63,6 +63,7 @@ class RetrievedRef(BaseModel):
     section: str = Field(description="Section / heading / clause the chunk came from.")
     snippet: str = Field(description="Retrieved text used as evidence.")
     score: float | None = Field(default=None, description="Retriever relevance score, if available.")
+    page: int | None = Field(default=None, ge=1, description="1-indexed source page, when the chunk carries one (citation drill-down).")
 
 
 class Citation(BaseModel):
@@ -77,6 +78,7 @@ class Citation(BaseModel):
     doc_id: str = Field(description="Identifier of the cited source document.")
     section: str = Field(description="Cited section / heading / clause within the document.")
     snippet: str | None = Field(default=None, description="Optional quoted text, for display in the trail.")
+    page: int | None = Field(default=None, ge=1, description="1-indexed page within the document, when known (citation drill-down).")
 
 
 # --------------------------------------------------------------------------- #

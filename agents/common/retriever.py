@@ -132,18 +132,48 @@ def _content_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
 
 
-def _pack_metadata(doc_id: str, section: str, title: str, content: str) -> str:
-    return json.dumps(
-        {"doc_id": doc_id, "section": section, "title": title, "hash": _content_hash(content)},
-        ensure_ascii=False,
-        separators=(",", ":"),
-    )
+def _coerce_page(value: Any) -> int | None:
+    """Normalise a stored page value to a positive int, else ``None``.
+
+    Tolerant by design: legacy items have no page, and a non-positive or
+    non-int value (``bool`` included) is treated as "no page" rather than
+    fabricated. Contract requires ``page >= 1``.
+    """
+    if isinstance(value, bool):  # bool is an int subclass — never a page.
+        return None
+    if isinstance(value, int) and value > 0:
+        return value
+    return None
 
 
-def _unpack_metadata(description: str | None) -> dict[str, str]:
-    """Parse an item description back into metadata; tolerant of legacy strings."""
+def _pack_metadata(
+    doc_id: str, section: str, title: str, content: str, page: int | None = None
+) -> str:
+    """Pack citation metadata into the item ``description`` (compact JSON).
+
+    ``page`` is included ONLY when it is a positive int; when absent the packed
+    string is byte-identical to the pre-page format (backward compatible).
+    """
+    meta: dict[str, Any] = {
+        "doc_id": doc_id,
+        "section": section,
+        "title": title,
+        "hash": _content_hash(content),
+    }
+    packed_page = _coerce_page(page)
+    if packed_page is not None:
+        meta["page"] = packed_page
+    return json.dumps(meta, ensure_ascii=False, separators=(",", ":"))
+
+
+def _unpack_metadata(description: str | None) -> dict[str, Any]:
+    """Parse an item description back into metadata; tolerant of legacy strings.
+
+    ``page`` is read back as a positive int or ``None`` (legacy / no-page items
+    return ``None`` — never a fabricated page).
+    """
     if not description:
-        return {"doc_id": "", "section": "", "title": "", "hash": ""}
+        return {"doc_id": "", "section": "", "title": "", "hash": "", "page": None}
     try:
         data = json.loads(description)
         if isinstance(data, dict):
@@ -152,11 +182,12 @@ def _unpack_metadata(description: str | None) -> dict[str, str]:
                 "section": str(data.get("section", "")),
                 "title": str(data.get("title", "")),
                 "hash": str(data.get("hash", "")),
+                "page": _coerce_page(data.get("page")),
             }
     except (json.JSONDecodeError, TypeError):
         pass
     # Legacy / non-JSON description: treat the whole string as the section.
-    return {"doc_id": "", "section": description, "title": "", "hash": ""}
+    return {"doc_id": "", "section": description, "title": "", "hash": "", "page": None}
 
 
 class VultronRetriever:
@@ -204,7 +235,7 @@ class VultronRetriever:
         )
         self._collection_id: str | None = None
         # In-process cache: item id -> parsed metadata, for the search join.
-        self._meta_cache: dict[str, dict[str, str]] = {}
+        self._meta_cache: dict[str, dict[str, Any]] = {}
 
     # ------------------------------------------------------------------ #
     # Lifecycle
@@ -378,6 +409,7 @@ class VultronRetriever:
         section: str,
         text: str,
         *,
+        page: int | None = None,
         _index: dict[tuple[str, str], dict[str, str]] | None = None,
     ) -> str:
         """Upsert one chunk (a ``(doc_id, section)`` pair) into the collection.
@@ -387,6 +419,11 @@ class VultronRetriever:
           * changed content -> old item deleted, new one inserted;
           * new pair -> inserted.
 
+        ``page`` (optional, keyword-only) is the 1-indexed source page carried by
+        the chunk for citation drill-down; it is stored in the item metadata when
+        positive and surfaces on ``RetrievedRef.page`` at query time. Omitting it
+        preserves the exact pre-page behaviour.
+
         ``_index`` is an internal optimisation so ``ingest_manifest`` fetches the
         existing-item list once instead of per chunk.
         """
@@ -394,7 +431,7 @@ class VultronRetriever:
         index = _index if _index is not None else await self._existing_index(cid)
 
         key = (doc_id, section)
-        description = _pack_metadata(doc_id, section, title, text)
+        description = _pack_metadata(doc_id, section, title, text, page)
         new_hash = _content_hash(text)
 
         existing = index.get(key)
@@ -430,12 +467,13 @@ class VultronRetriever:
             doc_id = raw["doc_id"]
             title = raw.get("title", "")
             section = raw.get("section", "")
+            page = raw.get("page")  # optional; None when the entry carries no page.
             text = self._resolve_text(raw["path_or_text"], manifest_path.parent)
 
             key = (doc_id, section)
             existed = key in index
             before_hash = index.get(key, {}).get("hash")
-            await self.ingest_document(doc_id, title, section, text, _index=index)
+            await self.ingest_document(doc_id, title, section, text, page=page, _index=index)
             after_hash = _content_hash(text)
 
             if not existed:
@@ -493,6 +531,7 @@ class VultronRetriever:
                     section=meta["section"],
                     snippet=r.get("content", ""),
                     score=None,  # Vultr search is rank-ordered; it exposes no numeric score.
+                    page=meta.get("page"),  # None when the chunk carried no page.
                 )
             )
         return refs

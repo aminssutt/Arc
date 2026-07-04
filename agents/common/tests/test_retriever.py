@@ -28,7 +28,13 @@ import httpx
 import pytest
 
 from contracts.agent_interface import Citation, RetrievedRef
-from agents.common.retriever import CollectionCollisionError, IngestSummary, VultronRetriever
+from agents.common.retriever import (
+    CollectionCollisionError,
+    IngestSummary,
+    VultronRetriever,
+    _pack_metadata,
+    _unpack_metadata,
+)
 
 BASE_URL = "https://fake.vultr"
 
@@ -502,3 +508,116 @@ class TestCollectionCollisionGuard:
         # Validated eagerly in __init__, before any client work.
         with pytest.raises(ValueError):
             VultronRetriever(NAME_A, api_key="x", on_collision="bogus")
+
+
+# --------------------------------------------------------------------------- #
+# 7. Page number carried through the retriever (citation drill-down Level 2)
+# --------------------------------------------------------------------------- #
+class TestPackUnpackPage:
+    """pack/unpack round-trip for the optional page — additive & backward-compat."""
+
+    def test_pack_unpack_round_trips_a_page(self) -> None:
+        # Arrange / Act
+        packed = _pack_metadata("DOC", "3.1 Rectifier", "DC Power", "body", page=7)
+        meta = _unpack_metadata(packed)
+        # Assert -- the page survives the round-trip as a positive int...
+        assert meta["page"] == 7
+        # ...alongside the untouched existing fields.
+        assert meta["doc_id"] == "DOC"
+        assert meta["section"] == "3.1 Rectifier"
+        assert meta["title"] == "DC Power"
+
+    def test_pack_omits_page_when_none(self) -> None:
+        # No page -> the "page" key is absent from the packed JSON, and the packed
+        # string is byte-identical to the pre-page format (backward compatible).
+        packed_none = _pack_metadata("DOC", "3.1 Rectifier", "DC Power", "body")
+        packed_explicit = _pack_metadata("DOC", "3.1 Rectifier", "DC Power", "body", page=None)
+        assert "page" not in json.loads(packed_none)
+        assert packed_none == packed_explicit
+        # Unpacking still surfaces page=None (never fabricated).
+        assert _unpack_metadata(packed_none)["page"] is None
+
+    def test_pack_omits_non_positive_page(self) -> None:
+        # A non-positive (or bool) page is treated as "no page", never stored.
+        for bad in (0, -1, True, False):
+            packed = _pack_metadata("DOC", "S", "T", "body", page=bad)  # type: ignore[arg-type]
+            assert "page" not in json.loads(packed)
+            assert _unpack_metadata(packed)["page"] is None
+
+    def test_unpack_legacy_no_page_description_returns_none(self) -> None:
+        # A legacy packed string (pre-page format) has no "page" key at all.
+        legacy = json.dumps(
+            {"doc_id": "DOC", "section": "S", "title": "T", "hash": "abc123"},
+            separators=(",", ":"),
+        )
+        meta = _unpack_metadata(legacy)
+        assert meta["page"] is None
+        assert meta["doc_id"] == "DOC"
+        assert meta["section"] == "S"
+
+    def test_unpack_non_json_legacy_string_returns_none_page(self) -> None:
+        # A truly legacy / non-JSON description: whole string is the section.
+        meta = _unpack_metadata("plain old section heading")
+        assert meta["page"] is None
+        assert meta["section"] == "plain old section heading"
+
+    def test_unpack_empty_description_returns_none_page(self) -> None:
+        meta = _unpack_metadata(None)
+        assert meta["page"] is None
+
+
+class TestQueryCarriesPage:
+    """A queried RetrievedRef carries the page when the item had one; else None."""
+
+    @pytest.mark.asyncio
+    async def test_ref_carries_page_when_item_had_one(self) -> None:
+        # Arrange -- one chunk ingested WITH a page, one WITHOUT.
+        fake = FakeVultr()
+        async with fake_client(fake) as client:
+            r = VultronRetriever("c", client=client)
+            await r.ingest_document("DOC", "DC Power", "3.1 Rectifier", "paged body", page=42)
+            await r.ingest_document("DOC", "DC Power", "3.2 Battery", "unpaged body")
+            # Act
+            refs = await r.query("anything", top_k=2)
+        # Assert -- rank order == insertion order; page carried where present.
+        assert [ref.section for ref in refs] == ["3.1 Rectifier", "3.2 Battery"]
+        assert refs[0].page == 42
+        assert refs[1].page is None
+        assert all(isinstance(ref, RetrievedRef) for ref in refs)
+
+    @pytest.mark.asyncio
+    async def test_page_survives_cold_cache_refresh(self) -> None:
+        # Retriever A ingests a paged chunk; a fresh retriever B (cold cache)
+        # must still surface the page via the lazy GET /items refresh.
+        fake = FakeVultr()
+        async with fake_client(fake) as client_a:
+            await VultronRetriever("c", client=client_a).ingest_document(
+                "DOC", "DC Power", "3.1 Rectifier", "paged body", page=5
+            )
+        async with fake_client(fake) as client_b:
+            r_b = VultronRetriever("c", client=client_b)
+            fake.calls.clear()
+            refs = await r_b.query("anything", top_k=1)
+        assert fake.count("GET", endswith="/items") == 1  # cold cache refreshed
+        assert refs[0].page == 5
+
+    @pytest.mark.asyncio
+    async def test_manifest_page_entry_propagates_to_query(self, tmp_path) -> None:
+        # A manifest entry carrying a "page" field surfaces on the queried ref;
+        # an entry without one stays None (fully backward-compatible).
+        fake = FakeVultr()
+        manifest = [
+            {"doc_id": "RB", "title": "DC", "section": "3.1", "page": 12,
+             "path_or_text": "Rectifier tripped on overtemperature."},
+            {"doc_id": "RB", "title": "DC", "section": "3.2",
+             "path_or_text": "Battery reserve depleted."},
+        ]
+        manifest_path = tmp_path / "manifest.json"
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        async with fake_client(fake) as client:
+            r = VultronRetriever("c", client=client)
+            summary = await r.ingest_manifest(manifest_path)
+            refs = await r.query("anything", top_k=2)
+        assert (summary.created, summary.replaced, summary.skipped) == (2, 0, 0)
+        by_section = {ref.section: ref.page for ref in refs}
+        assert by_section == {"3.1": 12, "3.2": None}
