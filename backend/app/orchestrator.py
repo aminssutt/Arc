@@ -128,6 +128,48 @@ class Orchestrator:
                 "lat": float(s.get("lat", 0.0)), "lon": float(s.get("lon", 0.0)),
                 "address": s.get("address", "")}
 
+    # -- citation transform (AUDIT P0-1, #76) -----------------------------------
+    # Agents produce contracts Citation {doc_id, section, snippet?}; the frozen
+    # event schema transports {doc_id, claim REQUIRED, title?, page?}. This is
+    # THE agent->event transform, applied at every emission point so any real
+    # agent's citations are event-legal.
+    @staticmethod
+    def _event_citation(c: dict[str, Any]) -> dict[str, Any]:
+        claim = c.get("claim") or c.get("section") or (c.get("snippet") or "").strip()[:120]
+        out: dict[str, Any] = {"doc_id": c.get("doc_id") or "unknown",
+                               "claim": claim or "supporting source"}
+        if c.get("title"):
+            out["title"] = c["title"]
+        if isinstance(c.get("page"), int):
+            out["page"] = c["page"]
+        return out
+
+    @classmethod
+    def _event_citations(cls, citations: list | None) -> list[dict[str, Any]]:
+        return [cls._event_citation(c) for c in (citations or [])]
+
+    @classmethod
+    def _normalize_diagnostic(cls, diagnostic: dict[str, Any]) -> dict[str, Any]:
+        out = dict(diagnostic)
+        out["causes"] = [{**c, "citations": cls._event_citations(c.get("citations"))}
+                         for c in diagnostic.get("causes", [])]
+        if diagnostic.get("urgency"):
+            u = dict(diagnostic["urgency"])
+            if u.get("citations"):
+                u["citations"] = cls._event_citations(u["citations"])
+            out["urgency"] = u
+        return out
+
+    @classmethod
+    def _normalize_procedure(cls, procedure: dict[str, Any]) -> dict[str, Any]:
+        out = dict(procedure)
+        out["steps"] = [{**s, "citations": cls._event_citations(s.get("citations"))}
+                        for s in procedure.get("steps", [])]
+        if procedure.get("safety"):
+            out["safety"] = [{**s, "citations": cls._event_citations(s.get("citations"))}
+                             for s in procedure["safety"]]
+        return out
+
     # -- agent runner (frozen protocol; timeout-safe) --------------------------
     async def _run_agent(self, name: str, phase: int, context: dict[str, Any]):
         inc = self.incident
@@ -184,7 +226,7 @@ class Orchestrator:
         rc = await self._run_agent("root_cause", 1, {**base_ctx, "correlation": corr.payload.get("correlation", {})})
         if rc is None:
             return
-        diagnostic = rc.payload.get("diagnostic", {})
+        diagnostic = self._normalize_diagnostic(rc.payload.get("diagnostic", {}))
         inc["diagnostic"] = diagnostic
 
         self.bus.emit(inc["id"], "diagnostic_ready", {
@@ -256,9 +298,10 @@ class Orchestrator:
         })
         if rem is None:
             return
-        inc["remediation"] = rem.payload
+        procedure = self._normalize_procedure(rem.payload.get("procedure", {"title": rem.summary, "steps": []}))
+        inc["remediation"] = {**rem.payload, "procedure": procedure}
         self.bus.emit(inc["id"], "remediation_ready", {
-            "procedure": rem.payload.get("procedure", {"title": rem.summary, "steps": []}),
+            "procedure": procedure,
             "parts": rem.payload.get("parts", []),
         })
 
