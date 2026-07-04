@@ -1,0 +1,358 @@
+[
+  {
+    "doc_id": "S1",
+    "title": "EN 300 132-2 V2.8.1 — -48V DC power interface",
+    "publisher": "ETSI",
+    "family": "PWR",
+    "rights": "fetch-at-build",
+    "url": "https://www.etsi.org/deliver/etsi_en/300100_300199/30013202/02.08.01_60/en_30013202v020801p.pdf",
+    "local_path": "corpus/standards/s1_en300132-2.pdf",
+    "page_hint": null
+  },
+  {
+    "doc_id": "S2",
+    "title": "ES 202 336-2 — DC power monitoring model",
+    "publisher": "ETSI",
+    "family": "PWR",
+    "rights": "fetch-at-build",
+    "url": "https://www.etsi.org/deliver/etsi_es/202300_202399/20233602/01.01.01_60/es_20233602v010101p.pdf",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "S3",
+    "title": "X.733 — Alarm reporting function",
+    "publisher": "ITU-T",
+    "family": "ALL",
+    "rights": "fetch-at-build",
+    "url": "https://www.itu.int/rec/T-REC-X.733-199202-I/en",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "S4",
+    "title": "EN 300 019-1-3 V2.4.1 — Environmental classes",
+    "publisher": "ETSI",
+    "family": "ENV",
+    "rights": "fetch-at-build",
+    "url": "https://www.etsi.org/deliver/etsi_en/300001_300099/3000190103/02.04.01_60/en_3000190103v020401p.pdf",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "S5",
+    "title": "3GPP TS 32.111-2 — Alarm IRP",
+    "publisher": "3GPP/ETSI",
+    "family": "ALL",
+    "rights": "fetch-at-build",
+    "url": "https://www.etsi.org/deliver/etsi_ts/132100_132199/13211102/16.00.00_60/ts_13211102v160000p.pdf",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "S6",
+    "title": "3GPP TS 28.532 V18.6.0 — 5G fault supervision",
+    "publisher": "3GPP/ETSI",
+    "family": "ALL",
+    "rights": "fetch-at-build",
+    "url": "https://www.etsi.org/deliver/etsi_ts/128500_128599/128532/18.06.00_60/ts_128532v180600p.pdf",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "S7",
+    "title": "ES 202 336-5 — Diesel genset monitoring model",
+    "publisher": "ETSI",
+    "family": "PWR",
+    "rights": "fetch-at-build",
+    "url": "https://www.etsi.org/deliver/etsi_es/202300_202399/20233605/01.01.01_60/es_20233605v010101p.pdf",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "S8",
+    "title": "X.721 — Management information definitions",
+    "publisher": "ITU-T",
+    "family": "ALL",
+    "rights": "fetch-at-build",
+    "url": "https://www.itu.int/rec/T-REC-X.721-199202-I/en",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "S9",
+    "title": "G.8272 (07/25) — PRTC timing clocks",
+    "publisher": "ITU-T",
+    "family": "RF",
+    "rights": "fetch-at-build",
+    "url": "https://www.itu.int/rec/T-REC-G.8272-202507-I/en",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "S10",
+    "title": "M.3100 — Generic network info model",
+    "publisher": "ITU-T",
+    "family": "ALL",
+    "rights": "link-only",
+    "url": null,
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "V1",
+    "title": "Vertiv NetSure NCU manual UM1M830BNA (282 pp)",
+    "publisher": "Vertiv",
+    "family": "PWR",
+    "rights": "fetch-at-build",
+    "url": "https://www.vertiv.com/globalassets/products/critical-power/dc-power-systems/UM1M830BNA_NCU_Controller.pdf",
+    "local_path": null,
+    "page_hint": "p16"
+  },
+  {
+    "doc_id": "V2",
+    "title": "Eltek Smartpack2 Master Controller guide",
+    "publisher": "Eltek",
+    "family": "PWR",
+    "rights": "fetch-at-build",
+    "url": "https://stt-solutions.ie/wp-content/uploads/2016/05/350020-013_UGde_Smartpack2_Master-Ctrller_2v0.pdf",
+    "local_path": null,
+    "page_hint": "p24"
+  },
+  {
+    "doc_id": "V3",
+    "title": "Eltek Smartpack S Controller guide",
+    "publisher": "Eltek",
+    "family": "PWR",
+    "rights": "fetch-at-build",
+    "url": "https://www.tempestns.com/wp-content/uploads/2020/07/Eltek-Smartpack-S-Controller-ug.pdf",
+    "local_path": null,
+    "page_hint": "p16"
+  },
+  {
+    "doc_id": "V4",
+    "title": "Vertiv NetSure 2100 -48VDC manual",
+    "publisher": "Vertiv",
+    "family": "PWR",
+    "rights": "fetch-at-build",
+    "url": "https://www.vertiv.com/globalassets/products/critical-power/dc-power-systems/um582138000-netsure-2100-user-manual.pdf",
+    "local_path": "corpus/vendor/v4_netsure2100.pdf",
+    "page_hint": null
+  },
+  {
+    "doc_id": "V5",
+    "title": "Vertiv NCU M830B/D datasheet",
+    "publisher": "Vertiv",
+    "family": "PWR",
+    "rights": "fetch-at-build",
+    "url": "https://www.vertiv.com/globalassets/products/critical-power/dc-power-systems/ncu_m830b_m830d_datasheet_137198_0.pdf",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "V6",
+    "title": "ELTEK-DISTRIBUTED-MIB",
+    "publisher": "Eltek via LibreNMS",
+    "family": "PWR",
+    "rights": "fetch-at-build",
+    "url": "https://raw.githubusercontent.com/librenms/librenms/master/mibs/eltek/ELTEK-DISTRIBUTED-MIB",
+    "local_path": "corpus/vendor/v6_eltek_distributed_mib.txt",
+    "page_hint": null
+  },
+  {
+    "doc_id": "V7",
+    "title": "SP2-MIB (Smartpack2/eNexus)",
+    "publisher": "Eltek via LibreNMS",
+    "family": "PWR",
+    "rights": "fetch-at-build",
+    "url": "https://raw.githubusercontent.com/librenms/librenms/master/mibs/eltek/SP2-MIB",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "V8",
+    "title": "LibreNMS eltek-webpower.yaml",
+    "publisher": "LibreNMS (GPL-3.0)",
+    "family": "PWR",
+    "rights": "commit",
+    "url": "https://raw.githubusercontent.com/librenms/librenms/master/resources/definitions/os_discovery/eltek-webpower.yaml",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "V9",
+    "title": "Nokia AirScale Radio Units Description",
+    "publisher": "Nokia (reseller-hosted)",
+    "family": "ENV",
+    "rights": "link-only",
+    "url": null,
+    "local_path": null,
+    "page_hint": "pp16/20"
+  },
+  {
+    "doc_id": "I1",
+    "title": "FCC T-Mobile June 2020 outage report",
+    "publisher": "FCC PSHSB",
+    "family": "TRN",
+    "rights": "commit",
+    "url": "https://docs.fcc.gov/public/attachments/DOC-367699A1.pdf",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "I2",
+    "title": "FCC CenturyLink Dec 2018 outage report",
+    "publisher": "FCC PSHSB",
+    "family": "TRN",
+    "rights": "commit",
+    "url": "https://docs.fcc.gov/public/attachments/DOC-359134A1.pdf",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "I3",
+    "title": "FCC AT&T Feb 2024 outage report",
+    "publisher": "FCC PSHSB",
+    "family": "TRN",
+    "rights": "commit",
+    "url": "https://docs.fcc.gov/public/attachments/DOC-404150A1.pdf",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "I4",
+    "title": "CRTC/Xona Rogers 2022 outage exec summary",
+    "publisher": "CRTC",
+    "family": "TRN",
+    "rights": "fetch-at-build",
+    "url": "https://crtc.gc.ca/eng/publications/reports/xona2024.htm",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "I5",
+    "title": "FCC Hurricane Michael report (18-339)",
+    "publisher": "FCC PSHSB",
+    "family": "PWR",
+    "rights": "commit",
+    "url": "https://docs.fcc.gov/public/attachments/DOC-357387A1.pdf",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "I6",
+    "title": "FCC DIRS status report 2018-10-13",
+    "publisher": "FCC",
+    "family": "PWR",
+    "rights": "commit",
+    "url": "https://docs.fcc.gov/public/attachments/DOC-354533A1.pdf",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "I7",
+    "title": "NIST Jan 2016 GPS UTC anomaly paper",
+    "publisher": "NIST",
+    "family": "RF",
+    "rights": "commit",
+    "url": "https://tf.nist.gov/general/pdf/2886.pdf",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "I8",
+    "title": "CISA Nashville bombing case study",
+    "publisher": "CISA/SAFECOM",
+    "family": "ENV",
+    "rights": "commit",
+    "url": "https://cisa.gov/sites/default/files/2023-02/22_0602_ecd_dependencies_2020-nashville-bombing_508C.pdf",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "I9",
+    "title": "ACMA Optus Nov 2023 investigation report",
+    "publisher": "ACMA",
+    "family": "TRN",
+    "rights": "fetch-at-build",
+    "url": "https://www.acma.gov.au/sites/default/files/2024-11/Investigation%20report%20-%20Optus%20outage%201Nov23%20(redacted).pdf",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "O1",
+    "title": "Lumen Service Level Agreement",
+    "publisher": "Lumen",
+    "family": "ALL",
+    "rights": "fetch-at-build",
+    "url": "https://assets.lumen.com/is/content/Lumen/lumen-service-level-agreementpdf",
+    "local_path": "corpus/slas/o1_lumen_sla.pdf",
+    "page_hint": null
+  },
+  {
+    "doc_id": "O2",
+    "title": "FIST 3-6 Storage Battery Maintenance",
+    "publisher": "US Bureau of Reclamation",
+    "family": "PWR",
+    "rights": "commit",
+    "url": "https://www.usbr.gov/power/data/fist/fist3_6/fist3-6.pdf",
+    "local_path": null,
+    "page_hint": "p24",
+    "aliases": [
+      "FIST-3-6"
+    ]
+  },
+  {
+    "doc_id": "O3",
+    "title": "OSHA CPL 02-01-056 tower hoist directive",
+    "publisher": "OSHA",
+    "family": "RF",
+    "rights": "commit",
+    "url": "https://www.osha.gov/sites/default/files/enforcement/directives/CPL_02-01-056.pdf",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "O4",
+    "title": "UFC 3-540-07 Generator O&M",
+    "publisher": "US DoD (WBDG)",
+    "family": "PWR",
+    "rights": "commit",
+    "url": "https://wbdg.org/FFC/DOD/UFC/ufc_3_540_07_2018_c1.pdf",
+    "local_path": null,
+    "page_hint": null,
+    "aliases": [
+      "UFC-3-540-07"
+    ]
+  },
+  {
+    "doc_id": "O5",
+    "title": "TelExpress Eaton APR48-3G listing",
+    "publisher": "TelExpress",
+    "family": "PWR",
+    "rights": "link-only",
+    "url": null,
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "O6",
+    "title": "CALNET 3 Cat-5 SLA (Level 3 / State of CA)",
+    "publisher": "CA STPD / Lumen",
+    "family": "TRN",
+    "rights": "fetch-at-build",
+    "url": "https://assets.lumen.com/is/content/Lumen/service-level-agreement-calnet-category-5-managed-internet-lvl-3?Creativeid=8fbe98a8-2f95-405a-aa3a-1e12b67ba612",
+    "local_path": null,
+    "page_hint": null
+  },
+  {
+    "doc_id": "O7",
+    "title": "NSRC NOC documentation deck (CC BY-NC 3.0)",
+    "publisher": "NSRC",
+    "family": "ALL",
+    "rights": "fetch-at-build",
+    "url": "https://nsrc.org/workshops/2012/menog-nmm/raw-attachment/wiki/Agenda/documentation.pdf",
+    "local_path": null,
+    "page_hint": null
+  }
+]
