@@ -5,6 +5,7 @@ Multi-agent network operations agent for **telecom site fault response** — RAI
 A deterministic Watchdog ingests the site alarm feed and triggers an Orchestrator running specialized agents in two phases, with a human validation loop on a native iOS app in the middle. All reasoning on **Vultr Serverless Inference**, grounded via **VultronRetriever** in real telecom operations documents. Output: a prioritized action report with a full citation trail.
 
 - **Roadmap:** [docs/ROADMAP.md](docs/ROADMAP.md)
+- **daniwavy5032 Roadmap:** [docs/DANIWAVY5032_ROADMAP.md](docs/DANIWAVY5032_ROADMAP.md)
 - **Board:** [https://github.com/users/vgtray/projects/1](https://github.com/users/aminssutt/projects/3)
 
 ## Compliance
