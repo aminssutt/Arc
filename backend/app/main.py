@@ -88,6 +88,13 @@ async def lifespan(app: FastAPI):
     registry["cost_inventory_dispatch"] = CostInventoryDispatchAgent(         # aminssutt's AGA.3
         cost, inventory, dispatch)
     _wire_real_agents(app, registry)  # INT.1 (#47) + INT.3 (#49): real correlation/root_cause/remediation
+    llm = getattr(app.state, "llm_clients", None)
+    if llm is not None:
+        try:  # interim grounding until DEMO.1 lands the real corpus (idempotent re-ingest)
+            summary = await llm[1].ingest_manifest("agents/common/fixtures/manifest.json")
+            logger.info("retriever fixture corpus ready: %s", summary)
+        except Exception as exc:  # noqa: BLE001 - retrieval then returns empty; agents degrade honestly
+            logger.warning("fixture corpus ingest skipped (%s)", exc)
     orchestrator = Orchestrator(app.state.bus, app.state.seeds, registry,
                                 push, agent_timeout_s=settings.agent_timeout_s)
     watchdog = Watchdog(app.state.seeds, orchestrator.handle_fault, orchestrator.add_failures)
@@ -120,6 +127,9 @@ def create_app() -> FastAPI:
         return {
             "status": "ok",
             "state": app.state.orchestrator.state,
+            # which registry entries are real vs dummy — INT smoke check at a glance
+            "agents": {name: type(agent).__name__
+                       for name, agent in app.state.orchestrator.agents.items()},
             "seeds": {name: src for name, src in app.state.seeds.sources.items()},
         }
 

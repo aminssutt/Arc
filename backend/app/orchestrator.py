@@ -229,6 +229,16 @@ class Orchestrator:
         diagnostic = self._normalize_diagnostic(rc.payload.get("diagnostic", {}))
         inc["diagnostic"] = diagnostic
 
+        # Root-Cause's mandatory missing-doc path (grounding gate) -> the
+        # doc_requested event, surfaced BEFORE the diagnostic it qualifies.
+        doc_req = diagnostic.pop("doc_request", None) or rc.payload.get("doc_request")
+        if isinstance(doc_req, dict):
+            self.bus.emit(inc["id"], "doc_requested", {
+                "agent": "root_cause",
+                "description": doc_req.get("description", "document missing from corpus"),
+                "query": doc_req.get("query", ""),
+                "status": doc_req.get("status", "missing")})
+
         self.bus.emit(inc["id"], "diagnostic_ready", {
             "correlation": corr.payload.get("correlation",
                                             {"site_id": inc["site"].get("site_id", ""), "equipment": []}),
