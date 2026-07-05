@@ -1,0 +1,84 @@
+# Arc — full stack for a one-shot VPS deploy. Only Caddy binds host ports, so
+# there is never a port clash on the box: back + front live on the internal
+# network and are reached exclusively through the reverse proxy.
+#
+#   Local proof : HTTP_PORT=8080 HTTPS_PORT=8443 docker compose up -d --build
+#   Production  : ARC_DOMAIN=<ip>.sslip.io docker compose up -d --build
+name: arc
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    # Real keys (VULTR / APNs) come from the local .env. Optional so the stack
+    # still boots keyless (Correlation runs real/offline, the rest degrade to
+    # dummies) if no .env is present.
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      ARC_HOST: "0.0.0.0"
+      ARC_PORT: "8000"
+      # Redirect the push payloads + iPhone device registry onto the named
+      # volume so registered tokens survive `compose up` / restarts.
+      ARC_PUSH_OUT_DIR: /var/lib/arc/push-out
+      ARC_DEVICE_STORE: /var/lib/arc/push-out/devices.runtime.json
+    volumes:
+      - arc-runtime:/var/lib/arc
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=3).status == 200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    networks: [arc-net]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Empty -> same-origin relative calls through Caddy (portable image).
+        NEXT_PUBLIC_ARC_BACKEND_URL: ${NEXT_PUBLIC_ARC_BACKEND_URL:-}
+    environment:
+      NODE_ENV: production
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    networks: [arc-net]
+
+  caddy:
+    image: caddy:2-alpine
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    environment:
+      # A real hostname (e.g. <ip>.sslip.io) -> automatic Let's Encrypt HTTPS.
+      # `localhost` (default) -> Caddy's internal self-signed CA.
+      ARC_DOMAIN: ${ARC_DOMAIN:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+    networks: [arc-net]
+
+volumes:
+  arc-runtime:
+  caddy-data:
+  caddy-config:
+
+networks:
+  arc-net:
+    driver: bridge
