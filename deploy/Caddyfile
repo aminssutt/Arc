@@ -1,0 +1,36 @@
+# Arc reverse proxy. One site, three routes. HTTPS is automatic: a real
+# ARC_DOMAIN (e.g. <ip>.sslip.io) gets a Let's Encrypt cert; `localhost`
+# (the default) is served over Caddy's internal self-signed CA.
+{
+	admin off
+}
+
+{$ARC_DOMAIN:localhost} {
+	encode gzip
+
+	# Health probe surfaced under /api for a uniform proxy front (the backend
+	# route is /health, so rewrite before forwarding). Used by remote smoke.
+	handle /api/health {
+		rewrite * /health
+		reverse_proxy backend:8000
+	}
+
+	# API — including the SSE endpoint /api/stream. flush_interval -1 disables
+	# response buffering: without it the event-stream is held back and the live
+	# control room never updates.
+	handle /api/* {
+		reverse_proxy backend:8000 {
+			flush_interval -1
+		}
+	}
+
+	# The backend's own /health (the web app calls it same-origin).
+	handle /health {
+		reverse_proxy backend:8000
+	}
+
+	# Everything else — landing, /monitor, /console, /login, /_next assets.
+	handle {
+		reverse_proxy frontend:3000
+	}
+}

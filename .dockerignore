@@ -1,0 +1,44 @@
+.env
+.env.*
+!.env.example
+*.p8
+*.pem
+*.key
+*.mobileprovision
+
+# Separate build context / not imported by the backend at runtime
+frontend/
+ios/
+design/
+docs/
+deploy/
+validation/
+.github/
+
+# Python caches + local virtualenv
+.venv/
+venv/
+env/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node (never part of the backend context)
+node_modules/
+.next/
+
+# Tests are not shipped in the runtime image
+backend/tests/
+agents/**/tests/
+
+# Git + editor + OS cruft
+.git/
+.gitignore
+.vscode/
+.idea/
+*.swp
+.DS_Store
