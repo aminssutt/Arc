@@ -40,8 +40,30 @@ echo ">> copying local .env -> ${SSH_USER}@${IP}:${REMOTE_DIR}/.env (chmod 600) 
 scp "${SSH_OPTS[@]}" .env "${SSH_USER}@${IP}:${REMOTE_DIR}/.env"
 RSH "chmod 600 '${REMOTE_DIR}/.env'"
 
+# Build once. On a RE-deploy, compose may report a transient
+# "dependency ... is unhealthy" while a freshly-rebuilt container is still inside
+# its health start_period — that is NOT a fatal error, so we tolerate a non-zero
+# exit here and let the convergence loop + HTTPS smoke below be the real judges.
 echo ">> building & starting the stack (ARC_DOMAIN=${DOMAIN}, ports 80/443) ..."
-RSH "cd '${REMOTE_DIR}' && ARC_DOMAIN='${DOMAIN}' docker compose up -d --build"
+if ! RSH "cd '${REMOTE_DIR}' && ARC_DOMAIN='${DOMAIN}' docker compose up -d --build"; then
+  echo "   up returned non-zero (likely healthcheck timing during recreate) — converging below"
+fi
+
+# Idempotent convergence: `up -d --no-build` re-evaluates depends_on and brings up
+# anything an aborted first pass skipped (e.g. caddy). It returns 0 only once the
+# health conditions are met, so we loop until it succeeds (or we run out of time).
+echo ">> converging: ensuring every service is up & healthy (up to ~120s) ..."
+CONVERGED=0
+for _ in $(seq 1 24); do
+  if RSH "cd '${REMOTE_DIR}' && ARC_DOMAIN='${DOMAIN}' docker compose up -d --no-build" >/dev/null 2>&1; then
+    CONVERGED=1; echo "   all services up & healthy"; break
+  fi
+  echo "   ... still inside a health start_period, retrying in 5s"; sleep 5
+done
+if [ "${CONVERGED}" != "1" ]; then
+  echo "   convergence loop timed out — falling through to the HTTPS smoke (final judge)"
+  RSH "cd '${REMOTE_DIR}' && docker compose ps" || true
+fi
 
 echo ">> waiting for the public HTTPS endpoint (first-run cert issuance) ..."
 OK=0
@@ -49,7 +71,7 @@ for _ in $(seq 1 30); do
   if curl -fsS --max-time 8 "https://${DOMAIN}/api/health" >/dev/null 2>&1; then OK=1; break; fi
   echo "   ... waiting for https://${DOMAIN} (cert + boot)"; sleep 6
 done
-[ "${OK}" = "1" ] || { echo "!! /api/health not reachable over HTTPS yet — check: RSH 'cd ${REMOTE_DIR} && docker compose logs caddy backend'"; exit 1; }
+[ "${OK}" = "1" ] || { echo "!! /api/health not reachable over HTTPS — check: ssh ${SSH_USER}@${IP} 'cd ${REMOTE_DIR} && docker compose logs caddy backend frontend'"; exit 1; }
 
 echo ">> smoke:"
 echo -n "   /api/health : "; curl -fsS --max-time 8 "https://${DOMAIN}/api/health" | python3 -c 'import sys,json;d=json.load(sys.stdin);print("200", d.get("status"), "agents=", ",".join(d.get("agents",{}).values()))'
