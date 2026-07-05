@@ -24,6 +24,7 @@ import FaultPipeline from "@/components/landing/FaultPipeline";
 import ValidationLoop from "@/components/landing/ValidationLoop";
 import ControlRoomPreview from "@/components/landing/ControlRoomPreview";
 import GroundedCitations from "@/components/landing/GroundedCitations";
+import VideoEmbed from "@/components/landing/VideoEmbed";
 
 export const metadata: Metadata = {
   title: "Arc — network operations agents",
@@ -36,6 +37,10 @@ export const metadata: Metadata = {
 const BTN_SKY =
   "inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#0078AE] text-white text-sm font-semibold " +
   "transition-all duration-300 ease-expo hover:bg-[#0a6ea0] hover:shadow-[0_0_28px_-6px_rgba(0,120,174,0.65)]";
+
+// 👉 Paste the YouTube video id here when the demo video is ready (the part after
+//    `watch?v=` or `youtu.be/`), e.g. "dQw4w9WgXcQ". Empty string = placeholder.
+const DEMO_VIDEO_ID = "";
 
 // ── §01 problem beats ────────────────────────────────────────────────────────
 const PROBLEM_BEATS = [
@@ -247,6 +252,23 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* ── See it in action — demo video (placeholder until DEMO_VIDEO_ID is set) ── */}
+      <section id="demo" className="scroll-mt-16 max-w-content mx-auto px-6 sm:px-10 py-20 sm:py-28">
+        <FadeIn className="mx-auto max-w-narrative text-center">
+          <p className="eyebrow text-[#4d9dff]">See it in action</p>
+          <h2 className="section-title mt-3">Watch Arc run — from alarm to cited dispatch.</h2>
+          <p className="section-desc mx-auto">
+            One incident, a few minutes: detection, grounded diagnosis, the field veto, then remediation
+            and a cited action report.
+          </p>
+        </FadeIn>
+        <FadeIn className="mt-10">
+          <VideoEmbed youtubeId={DEMO_VIDEO_ID} />
+        </FadeIn>
+      </section>
+
+      <Hairline />
 
       {/* ── 06 Human-in-the-loop ────────────────────────────────────────── */}
       <SectionReveal
