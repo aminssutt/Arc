@@ -1,0 +1,29 @@
+ELTEK-DISTRIBUTED-MIB — SNMP trap and alarm-code definitions for Eltek/Flatpack2 -48 V DC telecom power controllers (excerpt, via LibreNMS). Vendor: Eltek. Real trap OIDs the site controller emits to the NOC feed.
+
+## alarmMajorRectifier
+
+Major rectifier alarm. Asserted when a rectifier module is lost or failed: module status reports fail, output current falls to zero, front LED dark. Maps to the canonical alarm PWR-RECT-FAIL. On a NetSure/Flatpack2 shelf this is the "Rectifier Lost" signature. Severity major. When alarmMajorRectifier and DC_UNDERVOLTAGE assert together with a falling bus, the traps corroborate a real loss of rectifier capacity: a genuine plant DC undervoltage whose fix is rectifier module replacement (part APR48-3G). A single occurrence with N+1 redundancy intact degrades redundancy only, but a rectifier module fault concurrent with a low bus is a real undervoltage.
+
+## DC_UNDERVOLTAGE / alarmMinorUnderVoltage / alarmMajorUnderVoltage
+
+DC undervoltage alarms. Asserted when the bus voltage on the controller's sense input crosses the configured minor (~-47.0 V) or major (~-45.0 V) undervoltage limit for the debounce period. Maps to the canonical alarm PWR-DC-UV. By default a DC undervoltage trap means the bus is really low — most often because a rectifier module failed (alarmMajorRectifier) and the plant is running down onto its batteries; the traps are then internally coherent and the undervoltage is a real plant fault whose remedy is module replacement (APR48-3G). The trap carries the value the controller sensed on its sense channel; only when an independent field measurement at the bar contradicts the trap — bus measured at normal float while the trap is active — does it indicate a sensing/supervision fault rather than a real sag.
+
+## alarmACmains
+
+Mains/grid loss alarm. Asserted when the AC input to the rectifier plant is lost. Maps to the canonical alarm PWR-GRID-LOSS. This is the discriminator for grid loss: if alarmACmains has NOT fired, the mains is present and the fault is not a grid outage — the plant is losing voltage for a plant-internal reason (rectifier or battery), not because AC was lost.
+
+## alarmMajorLowBattVolt
+
+Low battery voltage alarm. Asserted when battery-string voltage falls below its configured limit, typically during a real discharge when the plant is on batteries. Maps to PWR-BATT-DEGRADED. Presence indicates the batteries are actually being drawn down and corroborates a real undervoltage; absence during an undervoltage alarm is one signal to weigh, alongside a field measurement, when judging whether the sag is real.
+
+## alarmLVD1open
+
+Low-voltage disconnect open. Asserted when the sensed bus reaches the LVD threshold and the disconnect opens to protect the batteries — the deep-undervoltage end state of a real discharge. Maps to PWR-DC-UV (end state). Evaluated on the controller sense channel like the other voltage alarms.
+
+## alarmDistributionBreakerOpen
+
+Distribution breaker/fuse open. Asserted when a distribution branch breaker trips or a fuse blows, killing one branch while the plant bus stays normal. Indicates a downstream distribution fault localised to a branch, not a plant-wide undervoltage.
+
+## Note on trap values and the sensing channel
+
+Every voltage-derived trap in this MIB carries the value the controller read on its supervision/sense channel, encoded per the controller value map (e.g. divisor-100). By default a voltage trap is a real reading of the bus and is reconciled against the physical evidence (rectifier module state, discharge current, mains). A faulty supervision/sensing card can drive a false DC_UNDERVOLTAGE trap, but that conclusion is reached only when a direct field measurement at the bar contradicts the trap. Absent a contradicting measurement, treat a voltage trap as a real reading.

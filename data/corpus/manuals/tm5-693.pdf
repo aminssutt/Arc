@@ -1,0 +1,21 @@
+TM 5-693 — Uninterruptible Power Supply Selection, Installation and Maintenance for -48 V DC telecom power plants (excerpt). Corrective-action (symptom to fix) matrices for rectifier, battery and distribution faults.
+
+## Corrective-action matrix — rectifier symptoms (Tables 4-1..4-3)
+
+Symptom: single rectifier module fails under load; module status fail, output current zero, front LED dark, major rectifier alarm at the controller. Probable cause: module internal failure (fan, power stage, or control). Fix: replace the failed rectifier module with a like-for-like unit (48 V / 2000 W class, APR48-3G); the swap is hot on an N+1 plant and does not interrupt the DC output. Verify the bus returns to float near -54.4 V and the alarm clears. Note: with N+1 redundancy intact a single module fail is non-service-affecting and the replacement may be scheduled.
+
+Symptom: multiple modules off and bus falling with mains present. Probable cause: shared upstream (AC feed to shelf, controller). Fix: check AC distribution to the shelf and controller before condemning modules.
+
+## Corrective-action matrix — undervoltage vs sensing (Tables 4-4..4-5)
+
+Symptom: controller reports DC undervoltage but the bus measured at the bar is normal float. Probable cause: supervision/sensing card fault or voltage-sense connection, not a real sag. Fix: verify the reported voltage against a calibrated DMM at the bar; if they disagree, replace or recalibrate the supervision/sensing module, then re-verify. Do not dispatch an emergency battery intervention on a monitoring-only fault.
+
+Symptom: bus genuinely low, discharge current present, mains ok. Probable cause: lost rectifier capacity exceeding redundancy. Fix: restore rectifier capacity (replace failed modules), confirm float returns.
+
+## Corrective-action matrix — battery and distribution (Tables 4-6..4-7)
+
+Symptom: string reaches LVD early under discharge. Probable cause: degraded string. Fix: load-test and replace weak blocks; verify autonomy after restore. Symptom: one distribution branch dead, plant bus normal. Probable cause: tripped breaker / blown fuse. Fix: inspect and reset/replace the branch protection; the plant itself is healthy.
+
+## Using the matrices
+
+Each row pairs an observed symptom with a probable cause and a fix step; select the row whose symptom matches the field-verified evidence (measured bus, discharge current, module LED, mains state), not the raw alarm alone. The field measurement is the arbiter when telemetry and physical state disagree.
