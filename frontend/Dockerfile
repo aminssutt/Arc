@@ -37,6 +37,12 @@ ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000
 COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
+# `next start` loads next.config.ts, which needs the TypeScript compiler to parse
+# it. TS is a devDependency (dropped by --omit=dev), and without it Next tries to
+# self-install it at boot, fails (read-only /app as non-root) and CRASH-LOOPS —
+# which trips caddy's `depends_on: service_healthy` on every deploy. The package
+# has no deps of its own, so copy just it from the build stage (exact locked ver).
+COPY --from=build --chown=node:node /app/node_modules/typescript ./node_modules/typescript
 COPY --from=build --chown=node:node /app/.next ./.next
 COPY --from=build --chown=node:node /app/public ./public
 COPY --from=build --chown=node:node /app/package.json ./package.json

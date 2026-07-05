@@ -26,12 +26,15 @@ services:
       ARC_DEVICE_STORE: /var/lib/arc/push-out/devices.runtime.json
     volumes:
       - arc-runtime:/var/lib/arc
+    # start_period must cover the slowest boot (real Vultr corpus ingest can add
+    # seconds): during it, failing probes do NOT mark the container unhealthy, so
+    # a re-deploy never trips caddy's `depends_on: service_healthy` mid-recreate.
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health', timeout=3).status == 200 else 1)"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 20s
+      retries: 6
+      start_period: 40s
     restart: unless-stopped
     networks: [arc-net]
 
@@ -44,12 +47,16 @@ services:
         NEXT_PUBLIC_ARC_BACKEND_URL: ${NEXT_PUBLIC_ARC_BACKEND_URL:-}
     environment:
       NODE_ENV: production
+    # `next start` needs ~40s to answer the first request on a busy 2-core VPS
+    # right after a rebuild. A 60s start_period keeps the container in "starting"
+    # (never "unhealthy") until it truly serves, so `up -d --build` on a
+    # re-deploy no longer aborts caddy with "dependency ... is unhealthy".
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
       timeout: 5s
-      retries: 5
-      start_period: 20s
+      retries: 6
+      start_period: 60s
     restart: unless-stopped
     networks: [arc-net]
 
