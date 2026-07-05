@@ -1,0 +1,17 @@
+UFC 3-540-07 — Operation and Maintenance electrical safety for -48 V DC telecom power plants (excerpt). Safety-step ordering, lockout/tagout, PPE and test procedures before servicing a site DC plant.
+
+## Lockout/tagout before servicing the DC plant
+
+Before any intervention on a site -48 V DC plant, apply the site DC-plant lockout/tagout procedure: identify the section to be worked, isolate it, and apply locks and tags so no source can be re-energised while work is in progress. For a hot rectifier module swap on an N+1 plant the DC output remains live by design, so the safety focus is on preventing accidental short of the live -48 V bus and on protecting the battery source, which cannot be switched off. Confirm the scope of isolation with the NOC before starting.
+
+## PPE and insulated tools
+
+Servicing a live DC plant requires the correct PPE and insulated tools only. Remove watches, rings and metallic items; use tools with insulated shafts rated for the bus; wear eye protection. The battery string is an unswitchable high-energy source: a dropped metal tool across the bar can deliver a very high fault current. Treat the -48 V bus and the battery terminals as always live.
+
+## DC plant safety practices during module servicing
+
+When extracting or inserting a rectifier module, handle one module at a time, keep the shelf and bar clear of loose hardware, and verify the replacement is seated before releasing it. When working on or near the supervision/sensing wiring, avoid shorting sense leads to the bus. After the task, verify the plant is at float and all guards and covers are replaced before restoring the monitoring point to service. Record the intervention and the measured bus voltage for the NOC.
+
+## Verification and test after servicing
+
+After a module swap or a supervision-module replacement, measure the bus at the distribution bar and confirm it is at normal float near -54.4 V, confirm alarms have cleared at the controller, and confirm the restored telemetry matches the measured value before leaving the site. Do not close the incident on telemetry alone.

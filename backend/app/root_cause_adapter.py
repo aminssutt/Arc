@@ -49,17 +49,22 @@ class RootCauseAgentAdapter:
 
         # Verification request for the human loop, from the top cause's measurement.
         failures = data.context.get("failures", [])
-        failure_id = failures[0]["id"] if failures else "F1"
         correlation = data.context.get("correlation", {})
         point = (correlation.get("equipment") or [""])[0]
         top = raw_causes[0] if raw_causes else {}
         verification_requests: list[dict[str, Any]] = []
-        if top.get("expected_measurement"):
+        expected = top.get("expected_measurement")
+        if expected:
+            # Direct the verification at the failure carrying the discriminating
+            # numeric telemetry (e.g. busbar dc_voltage) and use ITS metric/point,
+            # so the technician measures the quantity that can actually contradict
+            # the alarm — the pitch's "test at the site" beat.
+            vf = self._verification_failure(failures, expected)
             verification_requests = [{
-                "failure_id": failure_id,
+                "failure_id": vf.get("id", "F1"),
                 "action": "physically verify at the measurement point",
-                "metric": top["expected_measurement"],
-                "point": point,
+                "metric": vf.get("metric") or expected,
+                "point": vf.get("equipment") or point,
             }]
 
         diagnostic: dict[str, Any] = {"causes": causes, "verification_requests": verification_requests}
@@ -77,10 +82,7 @@ class RootCauseAgentAdapter:
             retrievals.append({
                 "pass": pass_.get("pass_number", len(retrievals) + 1),
                 "query": pass_.get("query", ""),
-                "results": [
-                    {"doc_id": r.doc_id, "title": r.section or r.doc_id, "score": r.score if r.score is not None else 0.0}
-                    for r in chunk
-                ],
+                "results": [self._result_ref(r) for r in chunk],
             })
 
         return AgentOutput(
@@ -92,3 +94,44 @@ class RootCauseAgentAdapter:
             citations=out.citations,
             confidence=out.confidence,
         )
+
+    # Continuous quantities a technician reads with an instrument (voltage /
+    # current / temperature / ratio) vs boolean status signals stored as 0/1
+    # (module_status, mains_present, cell_active, backhaul_up) — which are numeric
+    # but are NOT a field measurement, so they must never win the verification.
+    _CONTINUOUS = ("voltage", "_v", "current", "_a", "temp", "_c", "ratio", "pct", "loss", "autonomy", "_min")
+    _BOOLEANISH = ("status", "present", "active", "_up")
+
+    @classmethod
+    def _verification_failure(cls, failures: list[dict[str, Any]], expected: str) -> dict[str, Any]:
+        """The failure carrying the discriminating CONTINUOUS telemetry to measure
+        (busbar dc_voltage), so the field check can contradict the alarm. Prefer a
+        metric-name match, then a continuous measurable metric (never a boolean
+        status signal encoded as 0/1), then any non-boolean numeric, else first."""
+        if not failures:
+            return {"id": "F1"}
+        exp = (expected or "").lower()
+        for f in failures:
+            fm = str(f.get("metric") or "").lower()
+            if fm and (fm == exp or fm in exp or exp in fm):
+                return f
+        for f in failures:
+            fm = str(f.get("metric") or "").lower()
+            if fm and any(k in fm for k in cls._CONTINUOUS) and not any(b in fm for b in cls._BOOLEANISH):
+                return f
+        for f in failures:
+            fm = str(f.get("metric") or "").lower()
+            v = f.get("value")
+            if isinstance(v, (int, float)) and not isinstance(v, bool) and not any(b in fm for b in cls._BOOLEANISH):
+                return f
+        return failures[0]
+
+    @staticmethod
+    def _result_ref(r: Any) -> dict[str, Any]:
+        # Surface the real retrieval score when the retriever provides one; the
+        # text VultronRetriever exposes none, so omit the field (schema-optional)
+        # rather than emit a misleading 0.0.
+        res: dict[str, Any] = {"doc_id": r.doc_id, "title": r.section or r.doc_id}
+        if r.score is not None:
+            res["score"] = r.score
+        return res

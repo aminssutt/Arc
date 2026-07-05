@@ -128,6 +128,45 @@
       "price",
       "link-only",
       "APR48-3G"
+    ],
+    "text": "## APR48-3G rectifier module — spare price (Eaton, TelExpress listing)\n\nTelExpress vendor listing for the Eaton APR48-3G rectifier module (48 V / 2000 W), the telecom -48 V DC plant spare used on Flatpack2 / NetSure rectifier shelves at cell sites. Unit price: USD 769.04. In stock. Link-only vendor source; used by the Cost/Inventory agent as the real spare price for the APR48-3G rectifier module when pricing a rectifier replacement."
+  },
+  {
+    "doc_id": "S2",
+    "type": "power_spec",
+    "title": "ETSI ES 202 336-2 — DC power monitoring model",
+    "path": "corpus/standards/s2_es202336-2.pdf",
+    "vendor": null,
+    "equipment_class": null,
+    "site_id": null,
+    "date": "2021-01-01",
+    "tags": [
+      "dc_plant",
+      "monitoring",
+      "sensing",
+      "measurement-point",
+      "supervision-card",
+      "false-undervoltage",
+      "pivot-scenario"
+    ]
+  },
+  {
+    "doc_id": "V2",
+    "type": "ran_manual",
+    "title": "Eltek Smartpack2 Master Controller guide",
+    "path": "corpus/vendor/v2_smartpack2.pdf",
+    "vendor": "Eltek",
+    "equipment_class": "rectifier",
+    "site_id": null,
+    "date": "2020-01-01",
+    "tags": [
+      "rectifier",
+      "controller",
+      "supervision",
+      "sensing",
+      "alarm-limit",
+      "false-undervoltage",
+      "pivot-scenario"
     ]
   }
 ]

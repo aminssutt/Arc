@@ -2,3 +2,8 @@ fastapi>=0.115
 uvicorn[standard]>=0.30
 pydantic>=2.7
 jsonschema>=4.21
+# Real APNs path (INT.7): ES256 provider JWT + HTTP/2 to Apple. Lazy-imported, so
+# file/simctl delivery does not need them; pinned + verified 0 CVE (2026-07-05).
+httpx[http2]==0.28.1
+PyJWT==2.13.0
+cryptography==49.0.0
