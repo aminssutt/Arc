@@ -1,0 +1,17 @@
+FIST 3-6 — Storage Battery Maintenance and Principles, stationary VRLA strings backing -48 V DC telecom plants (excerpt). Float criteria, discharge behaviour, time-to-LVD, troubleshooting.
+
+## Float voltage criteria (Table 1)
+
+A stationary VRLA string on continuous float is held at approximately 2.27 V per cell at 25 degC. A 24-cell -48 V string therefore floats at about 54.4 V (2.27 x 24 = 54.48 V), the reference float for a healthy plant on the bus. A bus held near -54.4 V indicates the rectifiers are supplying the load and floating the batteries normally; the batteries are neither charging heavily nor discharging. Departures below this, toward the mid-40s of volts, indicate the string is supporting load (discharging) rather than floating.
+
+## Discharge behaviour and time-to-LVD
+
+When the rectifier plant can no longer hold float — a real undervoltage — the batteries discharge and the bus falls from float toward the low-voltage-disconnect (LVD) point, typically around -42 to -44 V, where the LVD opens to protect the cells (alarmLVD1open). The rate of fall depends on load and remaining capacity; at a site load of a few kW a healthy string set holds for a few hours before reaching LVD. Time-to-LVD is estimated from the string capacity and the discharge current and is a labeled synthesis, not a measured vendor figure. A real discharge is accompanied by battery-discharge current and a falling bus; the absence of discharge current during an undervoltage alarm indicates the plant is not actually on batteries.
+
+## Battery string troubles and verification after restore
+
+Suspect a degraded string when the plant sags under load test while float voltage looks normal at rest, or when one string reaches LVD far earlier than its rating. After any plant event, load-test and verify string health once the bus is restored to float. Confirm the restored bus settles to about -54.4 V float before closing the incident.
+
+## 8.4 Undervoltage handling
+
+On an undervoltage indication, first establish whether the bus is genuinely low by direct measurement, then whether the batteries are discharging. A genuine undervoltage shows a low measured bus and discharge current, and time-to-LVD governs urgency. An undervoltage indication with a normal measured bus and no discharge current is not a battery event at all and must be traced to the sensing/monitoring chain rather than the plant.

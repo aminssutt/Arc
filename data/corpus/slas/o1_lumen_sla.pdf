@@ -1,0 +1,17 @@
+Lumen — Service Level Agreement for network transport and site connectivity (excerpt). SLA clocks, response and restore targets, and credit tiers used for incident prioritisation and cost/penalty math at telecom sites.
+
+## 1 Definitions — service-affecting vs non-service-affecting
+
+An outage is service-affecting when it interrupts or degrades the customer service carried by the site. The SLA clock — the time-to-respond and time-to-restore obligation — runs only against service-affecting outages. A condition that does not affect the service carried, such as a loss of monitoring visibility while the site continues to carry traffic on a healthy plant, does not start the SLA restore clock, though it is still tracked and corrected. This distinction governs whether an incident carries SLA penalty exposure.
+
+## 2 Response and restore targets
+
+For a Critical severity, service-affecting incident: notify within 15 minutes; time-to-restore (TTR) target for High priority is under 4 hours (240 minutes), Medium under 12 hours (720 minutes), Low under 24 hours (1440 minutes). The response target measures time to acknowledge and begin work; the restore target measures time to return service. These clocks feed the incident's priority and the cost of delay.
+
+## 3 Credit tiers
+
+When a restore target is missed on a service-affecting outage, service credits accrue as a percentage of the affected charges, stepping up with the duration of the breach. The credit tiers, combined with the estimated revenue loss over the outage window, are the basis for the cost-avoided figure when acting promptly prevents an SLA breach.
+
+## 4 Applicability to sensing-only faults
+
+Because the clock applies to service-affecting outages, an incident where the plant is healthy and only the monitoring/sensing is at fault does not accrue SLA restore penalties: no service is affected. The cost-avoided in such a case is the unnecessary emergency truck-roll and after-hours labor prevented, not an SLA credit. Correctly classifying the fault as service-affecting or not is therefore what drives both the SLA clock and the priced urgency.

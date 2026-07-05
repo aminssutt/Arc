@@ -1,0 +1,17 @@
+ETSI EN 300 132-2 V2.8.1 — Environmental Engineering (EE); Power supply interface at the input to telecommunications and datacom equipment; Part 2: -48 V DC interface (excerpt). Publisher: ETSI. The citable voltage envelope for the -48 V DC interface at a cell site.
+
+## 1 Scope
+
+This standard specifies the DC voltage interface, "interface A", between a -48 V DC power source (rectifier plant plus battery) and telecom equipment at a site. It defines the range of bus voltage within which equipment must operate and the source is considered normal. It is the reference used to judge whether a measured -48 V bus voltage is inside or outside the standard.
+
+## 2 Normal voltage range at interface A
+
+The normal operating voltage range at interface A is -40.5 V to -57.0 VDC. Any bus voltage inside this band is within the standard: the source is delivering an acceptable -48 V supply. The nominal float voltage of a 24-cell VRLA plant, about -54.4 V, sits comfortably inside this range. Voltage outside the band — more positive than -40.5 V or more negative than -57.0 V — is abnormal by standard and indicates a genuine plant fault (deep discharge / low-voltage disconnect below the lower magnitude, or a float/controller overvoltage above -57.0 V).
+
+## 3 Interpreting a measured bus voltage
+
+Applying the envelope to field readings: a bus at -53.9 V is normal float-region operation, well inside -40.5 to -57.0 V — the plant is healthy. A bus at -45.0 V is still inside the envelope, so it is not out-of-standard; it reads as "degraded, running down toward the batteries" rather than a violation — the plant is under stress but the interface is still compliant. A reading that would put the bus outside the envelope is a real, standard-level anomaly. Crucially, because -45.0 V is inside the envelope, a -45 V undervoltage alarm is a controller-limit event, not a standards violation: it must be reconciled with a direct measurement before the plant is declared degraded. When the controller reports -45 V but a DMM at the bar reads -53.9 V (normal float), the standard is satisfied and the low reading came only from the monitoring channel.
+
+## 4 Use in diagnosis
+
+The envelope is the discriminator between a real plant sag and a false reading. If a field measurement of the bus falls inside -40.5 to -57.0 V — especially near float around -54 V — the -48 V source is normal by EN 300 132-2 and any active undervoltage alarm cannot be a true interface undervoltage; the fault lies upstream in the sensing/monitoring chain. If the field measurement is genuinely low (near the lower magnitude, on batteries), the undervoltage is real and the plant is discharging.
