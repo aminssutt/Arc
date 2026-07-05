@@ -182,6 +182,23 @@ export default function LandingPage() {
 
       <Hairline />
 
+      {/* ── See it in action — demo video ───────────────────────────────── */}
+      <section id="demo" className="scroll-mt-16 max-w-content mx-auto px-6 sm:px-10 py-20 sm:py-28">
+        <FadeIn className="mx-auto max-w-narrative text-center">
+          <p className="eyebrow text-[#4d9dff]">See it in action</p>
+          <h2 className="section-title mt-3">Watch Arc run — from alarm to cited dispatch.</h2>
+          <p className="section-desc mx-auto">
+            One incident, a few minutes: detection, grounded diagnosis, the field veto, then remediation
+            and a cited action report.
+          </p>
+        </FadeIn>
+        <FadeIn className="mt-10">
+          <VideoEmbed youtubeId={DEMO_VIDEO_ID} />
+        </FadeIn>
+      </section>
+
+      <Hairline />
+
       {/* ── 02 The agent team ───────────────────────────────────────────── */}
       <SectionReveal
         id="method"
@@ -252,23 +269,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* ── See it in action — demo video (placeholder until DEMO_VIDEO_ID is set) ── */}
-      <section id="demo" className="scroll-mt-16 max-w-content mx-auto px-6 sm:px-10 py-20 sm:py-28">
-        <FadeIn className="mx-auto max-w-narrative text-center">
-          <p className="eyebrow text-[#4d9dff]">See it in action</p>
-          <h2 className="section-title mt-3">Watch Arc run — from alarm to cited dispatch.</h2>
-          <p className="section-desc mx-auto">
-            One incident, a few minutes: detection, grounded diagnosis, the field veto, then remediation
-            and a cited action report.
-          </p>
-        </FadeIn>
-        <FadeIn className="mt-10">
-          <VideoEmbed youtubeId={DEMO_VIDEO_ID} />
-        </FadeIn>
-      </section>
-
-      <Hairline />
 
       {/* ── 06 Human-in-the-loop ────────────────────────────────────────── */}
       <SectionReveal
