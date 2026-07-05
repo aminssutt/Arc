@@ -16,7 +16,7 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { motion, useMotionValue, useReducedMotion, useSpring } from "framer-motion";
 import type { MotionProps } from "framer-motion";
@@ -82,6 +82,8 @@ const NAV_LINKS = [
 export default function HeroScene() {
   const reduced = useReducedMotion();
   const [loaded, setLoaded] = useState(false);
+  // Wrapper around the Spline canvas — see the wheel effect below.
+  const splineWrapRef = useRef<HTMLDivElement>(null);
 
   // ── pointer-tracked sky spotlight ────────────────────────────────────────
   const gx = useMotionValue(-9999);
@@ -94,6 +96,20 @@ export default function HeroScene() {
     gx.set(e.clientX - r.left - GLOW_HALF);
     gy.set(e.clientY - r.top - GLOW_HALF);
   };
+
+  // macOS trackpad/scroll momentum over the robot was being consumed by the
+  // Spline runtime's own canvas `wheel` listener, orbiting the camera until the
+  // robot drifted out of frame. Swallow wheel in the capture phase on the
+  // wrapper so it never reaches the canvas: the page scrolls normally (we never
+  // preventDefault) and pointer tracking is untouched, so the robot still
+  // follows the cursor.
+  useEffect(() => {
+    const el = splineWrapRef.current;
+    if (!el) return;
+    const swallowWheel = (e: WheelEvent) => e.stopPropagation();
+    el.addEventListener("wheel", swallowWheel, { capture: true });
+    return () => el.removeEventListener("wheel", swallowWheel, { capture: true });
+  }, []);
 
   // Entrance reveals — disabled under reduced motion (no offset, no delay).
   const reveal = (y: number, delay = 0): MotionProps =>
@@ -226,7 +242,7 @@ export default function HeroScene() {
             className="absolute -inset-8 z-0 bg-[radial-gradient(circle_at_55%_45%,rgba(0,120,174,0.12),transparent_62%)] blur-2xl pointer-events-none"
           />
           <div className="relative z-[1]">
-            <div className="spline-hero relative h-[320px] sm:h-[420px] lg:h-[500px] xl:h-[540px]">
+            <div ref={splineWrapRef} className="spline-hero relative h-[320px] sm:h-[420px] lg:h-[500px] xl:h-[540px]">
               {reduced ? (
                 <SplinePoster />
               ) : (
