@@ -9,6 +9,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { AgentGraph } from "@/components/investigation/AgentGraph";
+import { AgentDetailOverlay } from "@/components/investigation/AgentDetailOverlay";
 import { ActionReportPanel } from "@/components/investigation/ActionReportPanel";
 import { BuildingSituation } from "@/components/investigation/BuildingSituation";
 import { DebugDock } from "@/components/investigation/DebugDock";
@@ -318,6 +319,20 @@ export default function MonitorPage() {
           </div>
         </div>
       </main>
+
+      {/* Clicking a node in the orchestration graph raises this detail surface.
+          It renders over the live graph WITHOUT touching the SSE stream — the
+          graph keeps advancing behind it; closing (X / Esc / click-outside)
+          returns to the already-updated live view. Matching → the employee
+          reveal; every other node → that agent's live terminal. */}
+      <AgentDetailOverlay
+        agent={viewMode === "technical" ? selectedAgent : null}
+        agents={state.agents}
+        activity={state.activity}
+        matching={state.matching}
+        responder={state.responder}
+        onClose={() => setSelectedAgent(null)}
+      />
 
       <ActionReportPanel
         report={report}

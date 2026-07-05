@@ -85,6 +85,14 @@ export type ActivityEntry = {
   detail: string;
   timestamp: string;
   tone: FlowTone;
+  /**
+   * Optional rich reasoning breakdown — the structured, multi-line content a
+   * single SSE event actually carries (ranked causes, retrieval hits, procedure
+   * steps, validation contradictions). `detail` stays the one-line summary the
+   * compact ActivityStream renders; `lines` drives the agent TERMINAL's live
+   * reasoning feed. Additive: consumers that ignore it are unaffected.
+   */
+  lines?: string[];
 };
 
 // ---------------------------------------------------------------------------
@@ -104,6 +112,39 @@ export type ChosenResponder = {
   matchedSkills?: string[];
   reason?: string;
   score?: number;
+};
+
+// ---------------------------------------------------------------------------
+// Responder-Matching narrowing snapshot — the LIVE candidate slate the matching
+// agent scored, carried by the additive `responder_matched` SSE event
+// (backend orchestrator `_emit_responder_matched`). `candidates[0]` IS the
+// chosen; the rest are alternatives the reveal "switches off" one by one until
+// only THE ONE stays lit. Every field is coerced defensively so a degraded
+// payload never crashes the stream.
+// ---------------------------------------------------------------------------
+export type MatchingCard = {
+  employeeId: string;
+  name: string;
+  tier: string; // senior / junior
+  region: string; // e.g. "IDF-North"
+  matchedSkills: string[]; // e.g. ["power","rectifier"]
+  score: number; // 0..1
+  reason?: string;
+  outOfZone?: boolean;
+};
+
+export type MatchingFault = {
+  family: string;
+  equipmentClass: string;
+  code: string;
+  region: string;
+};
+
+export type MatchingSnapshot = {
+  fault: MatchingFault;
+  difficulty: string; // "simple" | "complex"
+  chosen: MatchingCard;
+  candidates: MatchingCard[]; // candidates[0] is the chosen; rest are alternatives
 };
 
 // ---------------------------------------------------------------------------
@@ -208,6 +249,8 @@ export type InvestigationState = {
   activity: ActivityEntry[];
   /** The ONE technician the matching agent notified, if any. */
   responder: ChosenResponder | null;
+  /** Live candidate slate from `responder_matched` — drives the reveal viz. */
+  matching: MatchingSnapshot | null;
   /** Captured from `action_report_ready` — the demo finale's rich report. */
   report: EventReport | null;
 };
@@ -234,6 +277,7 @@ export const initialInvestigationState: InvestigationState = {
   flow: [],
   activity: [],
   responder: null,
+  matching: null,
   report: null,
 };
 
@@ -760,6 +804,23 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+// Terminal-line helpers for the reasoning feed (used only to build
+// ActivityEntry.lines — never touches the compact `detail` summary).
+function short(text: string, max: number): string {
+  const t = text.replace(/\s+/g, " ").trim();
+  return t.length > max ? `${t.slice(0, max - 1)}…` : t;
+}
+
+const CIRCLED = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨"];
+function circle(n: number): string {
+  return CIRCLED[n - 1] ?? `${n}.`;
+}
+
+function num(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
 // Lenient coercion of the responder pick carried on `awaiting_field_validation`
 // (`data.responders[0]`, from agents/responder_matching/matcher.py). Never
 // throws — a missing/degraded pick just yields null and the run continues.
@@ -783,6 +844,54 @@ function coerceResponder(value: unknown): ChosenResponder | null {
       : undefined,
     reason: str(first.reason) || undefined,
     score: typeof first.score === "number" ? first.score : undefined,
+  };
+}
+
+// Lenient coercion of a single roster card from the `responder_matched` slate
+// (`chosen` / `candidates[]`, backend `_responder_card`). Never throws.
+function coerceCard(value: unknown): MatchingCard | null {
+  if (!isRecord(value)) return null;
+  const employeeId = str(value.employee_id);
+  const name = str(value.name);
+  if (!employeeId && !name) return null;
+  const score = typeof value.score === "number" ? value.score : Number(value.score);
+  return {
+    employeeId: employeeId || name,
+    name: name || employeeId,
+    tier: str(value.tier) || "responder",
+    region: str(value.region),
+    matchedSkills: Array.isArray(value.matched_skills)
+      ? (value.matched_skills as unknown[]).map((s) => String(s))
+      : [],
+    score: Number.isFinite(score) ? score : 0,
+    reason: str(value.reason) || undefined,
+    outOfZone: "out_of_zone" in value ? Boolean(value.out_of_zone) : undefined,
+  };
+}
+
+// Lenient coercion of the whole `responder_matched` narrowing snapshot. Ensures
+// the chosen card sits at index 0 of `candidates` (the contract already does,
+// but we normalize + de-dup so the reveal can rely on it). Yields null on a
+// degraded payload with no usable card so the run just continues.
+function coerceMatching(data: unknown): MatchingSnapshot | null {
+  if (!isRecord(data)) return null;
+  const candidates = (Array.isArray(data.candidates) ? data.candidates : [])
+    .map(coerceCard)
+    .filter((c): c is MatchingCard => c !== null);
+  const chosen = coerceCard(data.chosen) ?? candidates[0] ?? null;
+  if (!chosen) return null;
+  const alternatives = candidates.filter((c) => c.employeeId !== chosen.employeeId);
+  const faultRec = isRecord(data.fault) ? data.fault : {};
+  return {
+    fault: {
+      family: str(faultRec.family),
+      equipmentClass: str(faultRec.equipment_class),
+      code: str(faultRec.code),
+      region: str(faultRec.region),
+    },
+    difficulty: str(data.difficulty),
+    chosen,
+    candidates: [chosen, ...alternatives],
   };
 }
 
@@ -874,6 +983,7 @@ export function actionForBackendEvent(event: BackendEventEnvelope): Investigatio
           flow: [],
           activity: [],
           responder: null,
+          matching: null,
           report: null,
         },
         evidence: [
@@ -1006,6 +1116,18 @@ export function actionForBackendEvent(event: BackendEventEnvelope): Investigatio
       const top = results[0];
       if (!top) return null;
       const title = str(top.title) || str(top.doc_id) || "Document";
+      const pass = String(event.data.pass ?? "1");
+      const query = str(event.data.query);
+      // Reasoning feed: the retrieval pass, its query, and every document the
+      // Root-Cause agent grounded on (title + doc id).
+      const retrievalLines: string[] = [];
+      retrievalLines.push(query ? `retrieve pass ${pass} · "${short(query, 62)}"` : `retrieve pass ${pass}`);
+      for (const r of results) {
+        const rt = str(r.title) || str(r.doc_id) || "document";
+        const id = str(r.doc_id);
+        const sec = str(r.section);
+        retrievalLines.push(`  ↳ ${short(rt, 60)}${sec && sec !== rt ? ` · ${short(sec, 28)}` : ""}${id ? ` [${id}]` : ""}`);
+      }
       return {
         type: "apply",
         patch: {},
@@ -1013,7 +1135,7 @@ export function actionForBackendEvent(event: BackendEventEnvelope): Investigatio
           {
             id: `D-${event.seq}`,
             title,
-            meta: `retrieval pass ${String(event.data.pass ?? "1")}`,
+            meta: `retrieval pass ${pass}`,
             tone: "primarySubtle",
             marker: { x: 42, y: 48 },
           },
@@ -1023,10 +1145,11 @@ export function actionForBackendEvent(event: BackendEventEnvelope): Investigatio
             id: event.id,
             kind: "retrieval",
             agent: "rootCause",
-            label: `Retrieved ${title}`,
-            detail: "Grounding the diagnosis in cited sources.",
+            label: `Grounded ${results.length} doc${results.length === 1 ? "" : "s"} · pass ${pass}`,
+            detail: `Retrieved ${title} — grounding the diagnosis in cited sources.`,
             tone: "neutral",
             timestamp,
+            lines: retrievalLines,
           },
         ],
       };
@@ -1035,12 +1158,27 @@ export function actionForBackendEvent(event: BackendEventEnvelope): Investigatio
     case "diagnostic_ready": {
       const causes = Array.isArray(event.data.causes) ? (event.data.causes as Array<Record<string, unknown>>) : [];
       const top = causes[0];
+      // Reasoning feed: the RANKING itself — every candidate cause with its
+      // confidence and (when the agent supplied it) why the lower ones were
+      // rejected — then the selected top cause. That ranking IS the reasoning.
+      const diagnosisLines: string[] = [];
+      if (causes.length) {
+        diagnosisLines.push(`ranking ${causes.length} candidate cause${causes.length === 1 ? "" : "s"}…`);
+        causes.forEach((c, i) => {
+          const conf = num(c.confidence).toFixed(2);
+          const rej = str(c.rejected_because) || str(c.rejected);
+          diagnosisLines.push(
+            `${circle(i + 1)} ${short(str(c.cause), 74)} — conf ${conf}${rej ? `  ✗ rejected: ${short(rej, 44)}` : ""}`,
+          );
+        });
+        if (top) diagnosisLines.push(`⇒ selected: ${short(str(top.cause), 66)}`);
+      }
       return {
         type: "apply",
         patch: {
           decisionLabel: "DIAGNOSIS READY",
           decisionCopy: top
-            ? `Top cause: ${str(top.cause)} (confidence ${Math.round(Number(top.confidence ?? 0) * 100)}%).`
+            ? `Top cause: ${str(top.cause)} (confidence ${Math.round(num(top.confidence) * 100)}%).`
             : "Phase 1 diagnosis complete.",
         },
         flow: [
@@ -1058,11 +1196,39 @@ export function actionForBackendEvent(event: BackendEventEnvelope): Investigatio
             id: event.id,
             kind: "diagnosis",
             agent: "rootCause",
-            label: "Diagnosis ranked",
+            label: `Ranked ${causes.length || "0"} cause${causes.length === 1 ? "" : "s"}`,
             detail: top
-              ? `Top cause: ${str(top.cause)} (${Math.round(Number(top.confidence ?? 0) * 100)}%).`
+              ? `Top cause: ${str(top.cause)} (${Math.round(num(top.confidence) * 100)}%).`
               : "Ranked causes ready.",
             tone: "neutral",
+            timestamp,
+            ...(diagnosisLines.length ? { lines: diagnosisLines } : {}),
+          },
+        ],
+      };
+    }
+
+    // Additive: capture the matchmaking narrowing slate (candidates + chosen)
+    // for the live employee-selection reveal. Does NOT change agent statuses —
+    // push_sent / awaiting_field_validation still own the matching→validation
+    // handoff — it only stashes `state.matching` and logs one activity line so
+    // the matching agent's terminal reflects the narrowing.
+    case "responder_matched": {
+      const matching = coerceMatching(event.data);
+      if (!matching) return null;
+      const zone = matching.chosen.outOfZone ? "hors-zone" : "in-zone";
+      const alt = matching.candidates.length - 1;
+      return {
+        type: "apply",
+        patch: { matching },
+        activity: [
+          {
+            id: event.id,
+            kind: "match",
+            agent: "matching",
+            label: `Narrowed ${matching.candidates.length} → 1 · ${matching.chosen.name}`,
+            detail: `${matching.chosen.tier} · ${zone}${matching.difficulty ? ` · ${matching.difficulty} fault` : ""} retained${alt > 0 ? ` — ${alt} alternative${alt === 1 ? "" : "s"} eliminated.` : "."}`,
+            tone: "primary",
             timestamp,
           },
         ],
@@ -1166,20 +1332,36 @@ export function actionForBackendEvent(event: BackendEventEnvelope): Investigatio
 
     case "validation_result": {
       const pivot = event.data.result === "pivot";
+      const rationale = str(event.data.rationale);
+      const contradictions = Array.isArray(event.data.contradictions)
+        ? (event.data.contradictions as unknown[])
+        : [];
+      // Reasoning feed: the validation agent's verdict, its rationale, and any
+      // field contradictions it weighed against the diagnosis.
+      const validationLines: string[] = [
+        `verdict: ${pivot ? "PIVOT — field evidence contradicts the diagnosis" : "CONFIRMED — diagnosis holds in the field"}`,
+      ];
+      if (rationale) validationLines.push(`rationale: ${short(rationale, 96)}`);
+      for (const c of contradictions) {
+        const text = isRecord(c)
+          ? str(c.detail) || str(c.reason) || str(c.field) || Object.values(c).map(String).join(" · ")
+          : String(c);
+        if (text) validationLines.push(`✗ contradiction: ${short(text, 78)}`);
+      }
       return {
         type: "apply",
         patch: {
           caseStatus: "investigating",
           agents: agents({ validation: "done" }),
           decisionLabel: pivot ? "VALIDATION: PIVOT" : "VALIDATION: CONFIRMED",
-          decisionCopy: str(event.data.rationale) || (pivot ? "Diagnosis contradicted in the field." : "Diagnosis confirmed in the field."),
+          decisionCopy: rationale || (pivot ? "Diagnosis contradicted in the field." : "Diagnosis confirmed in the field."),
         },
         flow: [
           {
             id: event.id,
             index: "•",
             title: pivot ? "Pivot" : "Validate",
-            body: str(event.data.rationale) || "Field verdict processed.",
+            body: rationale || "Field verdict processed.",
             tone: pivot ? "warning" : "secondary",
             ...flowBase,
           },
@@ -1190,15 +1372,39 @@ export function actionForBackendEvent(event: BackendEventEnvelope): Investigatio
             kind: pivot ? "pivot" : "validation",
             agent: "validation",
             label: pivot ? "Field verdict: pivot" : "Field verdict: confirmed",
-            detail: str(event.data.rationale) || "Field verdict processed.",
+            detail: rationale || "Field verdict processed.",
             tone: pivot ? "warning" : "secondary",
             timestamp,
+            lines: validationLines,
           },
         ],
       };
     }
 
-    case "remediation_ready":
+    case "remediation_ready": {
+      const procedure = isRecord(event.data.procedure) ? event.data.procedure : {};
+      const steps = Array.isArray(procedure.steps) ? (procedure.steps as Array<Record<string, unknown>>) : [];
+      const safety = Array.isArray(procedure.safety) ? (procedure.safety as Array<Record<string, unknown>>) : [];
+      const parts = Array.isArray(event.data.parts) ? (event.data.parts as unknown[]) : [];
+      // Reasoning feed: the cited repair procedure, step by step, plus safety
+      // notes and the parts list the agent compiled.
+      const remediationLines: string[] = [];
+      const procTitle = str(procedure.title);
+      if (procTitle) remediationLines.push(`procedure: ${short(procTitle, 78)}`);
+      steps.forEach((s, i) => {
+        const n = s.n != null ? String(s.n) : String(i + 1);
+        remediationLines.push(`${n}. ${short(str(s.text), 84)}`);
+      });
+      safety.forEach((s) => {
+        const text = str(s.text) || (typeof s === "string" ? String(s) : "");
+        if (text) remediationLines.push(`⚠ safety: ${short(text, 78)}`);
+      });
+      if (parts.length) {
+        const names = parts
+          .map((p) => (isRecord(p) ? str(p.part_no) || str(p.name) || str(p.ref) : String(p)))
+          .filter(Boolean);
+        if (names.length) remediationLines.push(`parts: ${short(names.join(", "), 84)}`);
+      }
       return {
         type: "apply",
         patch: {
@@ -1211,13 +1417,15 @@ export function actionForBackendEvent(event: BackendEventEnvelope): Investigatio
             id: event.id,
             kind: "remediation",
             agent: "remediation",
-            label: "Remediation ready",
+            label: steps.length ? `Procedure · ${steps.length} step${steps.length === 1 ? "" : "s"}` : "Remediation ready",
             detail: "Cited repair procedure + parts list prepared.",
             tone: "warning",
             timestamp,
+            ...(remediationLines.length ? { lines: remediationLines } : {}),
           },
         ],
       };
+    }
 
     case "action_report_ready":
       return {
