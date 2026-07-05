@@ -1,0 +1,45 @@
+flowchart TD
+    subgraph SRC["Data sources"]
+        SENS[("Sensors<br/>voltage - current - thermal")]
+        FEED[("Alarm / SCADA feed")]
+    end
+
+    WD["WATCHDOG - deterministic, no LLM<br/>ingest - normalize - threshold - debounce - trigger"]
+
+    ORCH{{"Orchestrator<br/>incident commander"}}
+    CORR["Correlation Agent"]
+    ROOT["Root-Cause Agent"]
+    VAL["Validation Agent"]
+    REM["Remediation Agent"]
+    COST["Cost and Inventory Agent"]
+    OP(["Operator"])
+
+    SENS --> WD
+    FEED --> WD
+    WD -->|FaultEvent| ORCH
+    ORCH -->|FaultEvent| CORR
+    CORR -->|LocationReport| ORCH
+    ORCH -->|FaultEvent + LocationReport| ROOT
+    ROOT -->|CauseHypotheses| ORCH
+    ORCH -->|DiagnosticCard| OP
+    OP -->|FieldMeasurement| ORCH
+    ORCH -->|Hypotheses + Measurement| VAL
+    VAL -->|ValidatedCause| ORCH
+    VAL -.->|pivot NewEvidence| ROOT
+    ORCH -->|ValidatedCause| REM
+    ORCH -->|ValidatedCause| COST
+    REM -->|ProcedurePlan| ORCH
+    COST -->|CostAndPartReport| ORCH
+    ORCH -->|PrescriptionReport| OP
+
+    classDef src fill:#f3f4f6,stroke:#374151,color:#111827;
+    classDef wd fill:#fef3c7,stroke:#b45309,color:#3d2704;
+    classDef orch fill:#ede9fe,stroke:#6d28d9,color:#2e1065;
+    classDef agent fill:#e8f0fe,stroke:#1a56db,color:#0b1f4d;
+    classDef op fill:#e7f8ee,stroke:#047857,color:#062e21;
+
+    class SENS,FEED src;
+    class WD wd;
+    class ORCH orch;
+    class CORR,ROOT,VAL,REM,COST agent;
+    class OP op;
