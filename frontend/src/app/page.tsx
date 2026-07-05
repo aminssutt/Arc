@@ -146,22 +146,8 @@ export default function LandingPage() {
         title="One Orchestrator. Six agents. One human veto."
         intro="Typed state routed to the right specialist at each step — with a human field-validation loop before anything moves."
       >
-        <div className="space-y-14">
-          <div className="card-padded mx-auto w-full max-w-4xl !p-4 sm:!p-6">
-            <AgentOrchestration />
-          </div>
-
-          <div className="grid lg:grid-cols-[1fr_1.1fr] gap-8 lg:gap-12 items-center">
-            <ValidationLoop compact />
-            <div>
-              <p className="section-label mb-3">Directed, not autonomous</p>
-              <p className="section-desc">
-                One specialist at a time over typed state. Every diagnosis opens a field-validation loop —
-                a real technician holds the veto. Confirm, and it flows to remediation and dispatch;
-                refuse, and it pivots to re-diagnose.
-              </p>
-            </div>
-          </div>
+        <div className="card-padded mx-auto w-full max-w-4xl !p-4 sm:!p-6">
+          <AgentOrchestration />
         </div>
       </SectionReveal>
 
