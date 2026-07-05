@@ -14,7 +14,7 @@ No bundle id argument needed: the `"Simulator Target Bundle"` key inside each fi
 targets the app. To target a specific simulator, replace `booted` with its UDID
 (`xcrun simctl list devices`).
 
-- Bundle id `com.arc.technician` is the standardized value — real-device signed &
+- Bundle id `com.arc.operator` is the standardized value — real-device signed &
   APNs-sandbox verified (daniwavy5032, 2026-07-04); if it ever changes, update the two
   fixtures + `push_payload.schema.json` example in the same PR (contract change process
   applies after freeze).

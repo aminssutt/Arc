@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from agents.cost_inventory import CostInventoryDispatchAgent
 
 from backend.app.bus import EventBus
+from backend.app.device_store import DeviceStore
 from backend.app.dummy_agents import default_registry
 from backend.app.orchestrator import Orchestrator
 from backend.app.push_service import PushService
@@ -84,7 +85,9 @@ async def lifespan(app: FastAPI):
     app.state.dispatch_tool = dispatch
     app.state.tools = {t.name: t for t in (cost, inventory, dispatch)}
 
-    push = PushService(app.state.bus, settings)
+    app.state.device_store = DeviceStore(settings.device_store_path)  # INT.7 token registry
+    push = PushService(app.state.bus, settings, app.state.device_store)
+    app.state.push_service = push
     registry = default_registry(cost, inventory, dispatch)
     # REAL agents replace dummies here as their lanes land (registry handoff):
     registry["validation"] = ValidationAgentAdapter(app.state.seeds)          # aminssutt's AGA.1
@@ -119,12 +122,16 @@ def create_app() -> FastAPI:
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
                        allow_headers=["*"])
 
+    from backend.app.api.routes_citations import router as citations_router
     from backend.app.api.routes_demo import router as demo_router
+    from backend.app.api.routes_devices import router as devices_router
     from backend.app.api.routes_stream import router as stream_router
     from backend.app.api.routes_validation import router as validation_router
     app.include_router(stream_router)
     app.include_router(validation_router)
     app.include_router(demo_router)
+    app.include_router(devices_router)
+    app.include_router(citations_router)
 
     @app.get("/health")
     async def health():

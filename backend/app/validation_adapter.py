@@ -36,8 +36,28 @@ class ValidationAgentAdapter:
 
     def _load_bearing_failure(self, ctx: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         failures: list[dict] = ctx.get("failures", [])
+        # 1) A submitted field measurement binds to the failure whose metric it
+        #    measures: the physical quantity read at the site IS what confirms or
+        #    refutes the alarm. Binding by metric (not by the verification_request's
+        #    failure_id) keeps the -53.9 V busbar reading paired with the busbar
+        #    dc_voltage failure, never the rectifier module_status failure.
+        for m in self._field_measurements(ctx):
+            metric = m.get("metric")
+            if metric:
+                match = next((f for f in failures if f.get("metric") == metric), None)
+                if match:
+                    return match["id"], match
+        # 2) A failure the technician CONTRADICTED (verdict=false) is load-bearing:
+        #    never leave a false verdict unheard because the verification_request
+        #    named a different (real) failure. This makes the frozen body (F2=false)
+        #    pivot exactly like the pitch card, even if no measurement metric matched.
+        for v in self._validations(ctx):
+            if v.get("verdict") == "false":
+                match = next((f for f in failures if f["id"] == v.get("failure_id")), None)
+                if match:
+                    return match["id"], match
         vreqs = (ctx.get("diagnostic") or {}).get("verification_requests", [])
-        if vreqs:  # Root-Cause said what to verify — trust it
+        if vreqs:  # else Root-Cause said what to verify — trust it
             failure_id = vreqs[0]["failure_id"]
         elif failures:  # fallback: highest-severity failure carries the diagnosis
             failure_id = min(failures, key=lambda f: self._SEVERITY_RANK.get(f.get("severity"), 9))["id"]
@@ -46,6 +66,18 @@ class ValidationAgentAdapter:
         failure = next((f for f in failures if f["id"] == failure_id),
                        failures[0] if failures else {})
         return failure_id, failure
+
+    @staticmethod
+    def _field_measurements(ctx: dict[str, Any]) -> list[dict[str, Any]]:
+        ve = ctx.get("validation_event") or {}
+        ms = ve.get("measurements") or ctx.get("measurements") or []
+        return [m for m in ms if isinstance(m, dict)]
+
+    @staticmethod
+    def _validations(ctx: dict[str, Any]) -> list[dict[str, Any]]:
+        ve = ctx.get("validation_event") or {}
+        vs = ve.get("validations") or ctx.get("validations") or []
+        return [v for v in vs if isinstance(v, dict)]
 
     def _signature(self, failure: dict[str, Any]) -> dict[str, Any]:
         # Canonical chain (schema §1.1): failure.alarm_code, else raw trap via

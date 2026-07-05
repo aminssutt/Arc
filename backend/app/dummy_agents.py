@@ -150,7 +150,15 @@ class DummyRemediationAgent:
 
     async def run(self, data: AgentInput) -> AgentOutput:
         pivot = data.context.get("validation_result") == "pivot"
-        part = data.context.get("suspect_part") or "APR48-3G"
+        if pivot:
+            # Post-pivot the cause is a sensing/supervision fault: the part follows
+            # the pivoted cause (a supervision module, absent from seed stock -> a
+            # clean out-of-stock in the report), never the rectifier spare.
+            part = data.context.get("suspect_part") or "SP2-MU"
+            part_desc = "Smartpack2 supervision/sensing module"
+        else:
+            part = data.context.get("suspect_part") or "APR48-3G"
+            part_desc = "Eaton 48V/2000W rectifier module"
         if pivot:
             procedure = {
                 "title": "Replace sensing path / verify telemetry; schedule original fix (dummy)",
@@ -183,7 +191,7 @@ class DummyRemediationAgent:
             incident_id=data.incident_id,
             agent=self.name,
             summary=procedure["title"],
-            payload={"procedure": procedure, "parts": [{"part_no": part, "description": "Eaton 48V/2000W rectifier module", "qty": 1}],
+            payload={"procedure": procedure, "parts": [{"part_no": part, "description": part_desc, "qty": 1}],
                      "action_hints": hints},
             retrieved_refs=[],
             citations=[Citation(doc_id="TM-5-693", section="recovery procedure")],

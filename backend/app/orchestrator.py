@@ -224,6 +224,12 @@ class Orchestrator:
         base_ctx = {"failures": inc["failures"], "phase_cause": cause,
                     "validations": (inc["validation"] or {}).get("validations", []),
                     "measurements": (inc["validation"] or {}).get("measurements", [])}
+        # Physical interpretation of any field measurement, computed IN CODE in
+        # magnitudes (a -48 V plant reads negative; undervoltage fires on |v| below
+        # threshold) so the pivot re-diagnosis never reads -53.9 V as "worse than"
+        # -44.8 V. Empty on the initial pass (no field measurement yet).
+        base_ctx["measurement_interpretation"] = self._interpret_measurements(
+            base_ctx["measurements"], inc["failures"])
         corr = await self._run_agent("correlation", 1, base_ctx)
         if corr is None:
             await self._terminate_degraded_phase1("correlation")  # never leave the incident stuck (INT.5)
@@ -262,7 +268,8 @@ class Orchestrator:
             return
 
         responders = await self._match_responders(corr)  # employee-matching (aminssutt)
-        payload = await self.push.send(inc)  # emits push_sent
+        operator_id = responders[0].get("employee_id") if responders else None
+        payload = await self.push.send(inc, operator_id=operator_id)  # emits push_sent, routed to the matched tech
         self.bus.emit(inc["id"], "awaiting_field_validation", {
             "failure_ids": [f["id"] for f in inc["failures"]],
             "requested_measurements": [
@@ -299,7 +306,41 @@ class Orchestrator:
             return []
         inc["responders"] = out.payload
         chosen = out.payload.get("responder")
-        return [chosen] if chosen else []
+        if not chosen:
+            return []
+        self._emit_responder_matched(out.payload, fault)  # matchmaking narrowing event
+        return [chosen]
+
+    @staticmethod
+    def _responder_card(r: dict[str, Any]) -> dict[str, Any]:
+        """Compact roster view the front renders: name, skill, zone, seniority."""
+        card = {
+            "employee_id": r.get("employee_id", ""),
+            "name": r.get("name", ""),
+            "tier": r.get("tier", ""),
+            "region": r.get("region", ""),
+            "matched_skills": r.get("matched_skills", []),
+            "score": r.get("score", 0.0),
+        }
+        if r.get("reason"):
+            card["reason"] = r["reason"]
+        if "out_of_zone" in r:
+            card["out_of_zone"] = bool(r["out_of_zone"])
+        return card
+
+    def _emit_responder_matched(self, payload: dict[str, Any], fault: dict[str, Any]) -> None:
+        """Surface the matchmaking narrowing as its own event: the candidates
+        considered (name, skill, zone) and the single retained technician with the
+        skill+zone reason. Additive event type; every field stays contract-legal."""
+        chosen = payload.get("responder") or {}
+        alternatives = payload.get("alternatives", []) or []
+        candidates = [self._responder_card(chosen)] + [self._responder_card(a) for a in alternatives]
+        self.bus.emit(self.incident["id"], "responder_matched", {
+            "fault": payload.get("fault", fault),
+            "difficulty": payload.get("difficulty", ""),
+            "chosen": self._responder_card(chosen),
+            "candidates": candidates,
+        })
 
     # -- human loop (from POST /api/validation, BE.6) ---------------------------
     async def handle_validation(self, body: dict[str, Any]) -> dict[str, Any]:
@@ -467,8 +508,51 @@ class Orchestrator:
             "citations": diag_citations,
         }
 
-    def _suspect_part(self) -> str | None:
-        """Part of the first implicated equipment (seed topology lookup, mechanical)."""
+    _MAG_OPS = {"lt": lambda v, t: v < t, "lte": lambda v, t: v <= t,
+                "gt": lambda v, t: v > t, "gte": lambda v, t: v >= t,
+                "eq": lambda v, t: v == t, "neq": lambda v, t: v != t}
+
+    def _interpret_measurements(self, measurements: list[dict[str, Any]] | None,
+                                failures: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Compute each field measurement's physical status IN CODE, in MAGNITUDES.
+
+        A -48 V DC plant reads negative; the undervoltage alarm fires on |v| below
+        the seeded threshold (alarm_dictionary), so a larger magnitude is HEALTHIER,
+        not worse. This structured verdict feeds the pivot prompt so the LLM reasons
+        from correct physics instead of the raw signed number. A missing/unparseable
+        threshold yields status 'unknown' — never a crash, never a false claim."""
+        out: list[dict[str, Any]] = []
+        for m in measurements or []:
+            metric, value = m.get("metric"), m.get("value")
+            if metric is None or not isinstance(value, (int, float)) or isinstance(value, bool):
+                continue
+            magnitude = round(abs(value), 2)
+            rule = next((r for r in self.seeds.alarm_dictionary.values()
+                         if r.get("signal") == metric), None)
+            telem = next((f.get("value") for f in failures
+                          if f.get("metric") == metric and isinstance(f.get("value"), (int, float))
+                          and not isinstance(f.get("value"), bool)), None)
+            interp: dict[str, Any] = {
+                "metric": metric, "point": m.get("point"), "unit": m.get("unit", ""),
+                "value": value, "magnitude": magnitude, "telemetry": telem,
+                "telemetry_magnitude": round(abs(telem), 2) if isinstance(telem, (int, float)) else None,
+            }
+            try:
+                op = rule and rule.get("threshold_op")
+                if rule and op in self._MAG_OPS and rule.get("threshold_value") is not None:
+                    threshold = float(rule["threshold_value"])
+                    abnormal = self._MAG_OPS[op](magnitude, threshold)
+                    interp.update({"threshold": threshold, "abnormal": abnormal,
+                                   "status": "unhealthy" if abnormal else "healthy"})
+                else:
+                    interp["status"] = "unknown"
+            except (TypeError, ValueError):
+                interp["status"] = "unknown"
+            out.append(interp)
+        return out
+
+    def _topology_part(self) -> str | None:
+        """Catalog part of the first implicated equipment (seed topology lookup)."""
         inc = self.incident
         for f in inc["failures"]:
             for eq in self.seeds.equipment.values():
@@ -477,6 +561,16 @@ class Orchestrator:
                              or eq["class"] in f["equipment"]):
                     return eq["part_number"]
         return None
+
+    def _suspect_part(self) -> str | None:
+        """Topology part to LEAD the inventory lookup (the exact-match fix for
+        free-text remediation parts). Deterministically NOT applied after a pivot:
+        the pivoted cause is no longer the originally-implicated equipment, so the
+        rectifier spare must NEVER lead a sensing-fault report — the lookup then
+        follows the remediation's own parts (SP2-MU), on 100% of pivots."""
+        if self.incident.get("validation_result") == "pivot":
+            return None
+        return self._topology_part()
 
     # -- report assembly (mechanical merge of agent payloads + tool results) ---
     def _assemble_report(self) -> dict[str, Any]:
@@ -517,14 +611,29 @@ class Orchestrator:
         if not disp.get("booked", False):
             honesty.append("no crew available for immediate dispatch — booking conflict flagged")
 
+        avoided = cost.get("downtime_cost_avoided", 0.0)
+        cost_notes = "; ".join(f"{k}: {v:.2f}" for k, v in cost.get("breakdown", {}).items())
+        if inc["validation_result"] == "pivot":
+            # Spurious-alarm pivot: no outage occurs, so "avoided" is the needless
+            # emergency replacement the false alarm would have triggered (original
+            # topology part + 2 h labor + truck roll, from the seeds), NOT the
+            # outage cost — a defensible figure for catching a false alarm.
+            part = self._topology_part()
+            part_price = self.seeds.inventory.get(part, {}).get("unit_price_usd", 0.0) if part else 0.0
+            cp = self.seeds.cost_params
+            labor = round(cp.get("labor_rate", {}).get("value_usd", 0.0) * 2.0, 2)
+            truck = cp.get("truck_roll_flat", {}).get("value_usd", 0.0)
+            avoided = round(part_price + labor + truck, 2)
+            cost_notes = (f"spurious alarm — avoided a needless emergency replacement "
+                          f"(part {part_price:.2f} + 2 h labor {labor:.2f} + truck roll {truck:.2f})")
         return {
             "diagnosis": {"cause": top["cause"], "confidence": top["confidence"],
                           "citations": top.get("citations", [])},
             "actions": actions,
-            "cost": {"currency": cost.get("currency", "EUR"),
+            "cost": {"currency": cost.get("currency", "USD"),
                      "intervention": cost.get("repair_cost", 0.0),
-                     "avoided": cost.get("downtime_cost_avoided", 0.0),
-                     "notes": "; ".join(f"{k}: {v:.2f}" for k, v in cost.get("breakdown", {}).items())},
+                     "avoided": avoided,
+                     "notes": cost_notes},
             "inventory": {"part_no": first_match.get("part_number", ""),
                           "qty_available": first_match.get("quantity", 0),
                           "location": first_match.get("warehouse_id") or "",
