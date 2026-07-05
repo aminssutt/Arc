@@ -33,7 +33,7 @@
 
 - `seq` — monotonically increasing per incident, no gaps in a replay.
 - `id` — globally unique, used as the SSE `id:` for resume.
-- `type` — one of the 14 event types below. `data` shape depends on `type`.
+- `type` — one of the 15 event types below. `data` shape depends on `type`.
 
 ## Shared objects
 
@@ -47,7 +47,7 @@
 - **family** — `energy | environment | rf | transport`.
 - **agent** — `correlation | root_cause | validation | remediation | cost_inventory_dispatch`.
 
-## Event catalog (14 types)
+## Event catalog (15 types)
 
 | # | type | Emitted by | When |
 |---|---|---|---|
@@ -65,6 +65,7 @@
 | 12 | `action_report_ready` | Orchestrator (after Phase 2) | the prioritized action report |
 | 13 | `doc_requested` | any agent | needed doc missing from corpus |
 | 14 | `incident_resolved` | Orchestrator | terminal state |
+| 15 | `responder_matched` | Orchestrator | matchmaking narrowed the roster to one technician (after diagnostic_ready, initial phase 1) |
 
 ### 1. fault_detected
 ```json
@@ -153,7 +154,7 @@ re-diagnosis MAY proceed to Phase 2 without a second push loop.
 {"procedure": {"title": "Replace failed rectifier module",
    "steps": [{"n": 1, "text": "Verify plant on N-1 redundancy before extraction",
               "citations": [{"doc_id": "V4", "page": 18, "claim": "hot-swap procedure"}]}],
-   "safety": [{"text": "DC plant lockout per facility SOP; insulated tools only",
+   "safety": [{"text": "DC plant lockout per site SOP; insulated tools only",
                "citations": [{"doc_id": "UFC-3-540-07", "page": 33, "claim": "DC plant safety"}]}]},
  "parts": [{"part_no": "APR48-3G", "description": "Eaton 48V rectifier module", "qty": 1}]}
 ```
@@ -165,8 +166,8 @@ re-diagnosis MAY proceed to Phase 2 without a second push loop.
                 "citations": [{"doc_id": "V4", "page": 12, "claim": "alarm signature match"}]},
   "actions": [{"priority": "P1", "action": "Replace rectifier-2 with APR48-3G from Paris-Est stock", "owner": "crew PWR-2", "eta": "2026-07-05T11:30:00Z"},
               {"priority": "P2", "action": "Load-test battery string A after plant restore", "owner": "crew PWR-2", "eta": "2026-07-05T13:00:00Z"}],
-  "cost": {"currency": "USD", "intervention": 1165.50, "avoided": 4180.0,
-           "notes": "part 769.04 + 2h labor @35.73 + truck roll ~150-500 (midpoint); avoided = SLA credits + est. downtime",
+  "cost": {"currency": "USD", "intervention": 1165.50, "avoided": 6800.0,
+           "notes": "part 769.04 + 2h labor @35.73 + truck roll 325.00 = 1165.50; avoided = downtime 5.00/min x 240 min (gold restore target) x 1.5 weight + SLA breach penalty 5000.00 = 6800.00",
            "sla": {"clock": "Lumen Critical: notify 15 min, TTR High < 4 h", "citations": [{"doc_id": "O1", "page": 2, "claim": "TTR clock"}]}},
   "inventory": {"part_no": "APR48-3G", "qty_available": 3, "location": "Paris-Est depot", "unit_price": 769.04},
   "dispatch": {"booking_id": "BK-2107", "crew": "PWR-2", "skill": "dc_power", "eta": "2026-07-05T11:30:00Z"},
@@ -187,10 +188,31 @@ contradictions or synth-labeled values out loud (never hidden).
 {"summary": "rectifier-2 replaced; plant back on float -54.4 V", "total_duration_s": 8460, "outcome": "resolved"}
 ```
 
+### 15. responder_matched
+```json
+{"fault": {"family": "energy", "equipment_class": "rectifier", "code": "PWR-DC-UV", "region": "IDF-North"},
+ "difficulty": "medium",
+ "chosen": {"employee_id": "EMP-001", "name": "Nadia Cherif", "tier": "senior", "region": "IDF-North",
+            "matched_skills": ["power", "rectifier"], "score": 0.8991,
+            "reason": "medium task -> senior profile; competence 1.00 (power,rectifier); zone IDF-North",
+            "out_of_zone": false},
+ "candidates": [{"employee_id": "EMP-001", "name": "Nadia Cherif", "tier": "senior", "region": "IDF-North", "matched_skills": ["power", "rectifier"], "score": 0.8991, "out_of_zone": false},
+                {"employee_id": "EMP-006", "name": "Karim Haddad", "tier": "confirmé", "region": "IDF-East", "matched_skills": ["power", "rectifier"], "score": 0.9738},
+                {"employee_id": "EMP-004", "name": "Thomas Berger", "tier": "junior", "region": "IDF-North", "matched_skills": ["power", "rectifier"], "score": 0.8102}]}
+```
+Emitted by the Orchestrator right after `diagnostic_ready` on the **initial** phase 1
+(before `push_sent`). The deterministic matchmaking (skill + zone, difficulty-routed)
+narrows the roster to ONE technician: `candidates` is the roster considered — render
+it as the roster tightening — and `chosen` is the retained technician with the
+skill+zone `reason`. Candidates may sit out of zone with a higher raw `score`; the
+`chosen` is the best **in-zone** qualified person (`out_of_zone` flags the fallback
+when nobody in-zone is available). NOT emitted on a pivot re-diagnosis. The push then
+routes to `chosen` (their registered device — see Push payload).
+
 ## Push payload (APNs-shaped; simctl demo path)
 
 ```json
-{"Simulator Target Bundle": "com.arc.technician",
+{"Simulator Target Bundle": "com.arc.operator",
  "aps": {"alert": {"title": "Arc — PAR-021-NORD: energy fault",
                    "body": "3 detected failures await field validation"},
          "sound": "default", "category": "ARC_VALIDATION"},
@@ -204,7 +226,7 @@ contradictions or synth-labeled values out loud (never hidden).
 
 - `"Simulator Target Bundle"` is **simctl-only** (lets `xcrun simctl push booted <file>`
   work without passing a bundle id); real APNs ignores/omits it.
-- Bundle id `com.arc.technician` = standardized value — real-device signed & APNs-sandbox verified (daniwavy5032, 2026-07-04).
+- Bundle id `com.arc.operator` = standardized value — real-device signed & APNs-sandbox verified (daniwavy5032, 2026-07-04).
 
 ## Validation event — `POST /api/validation`
 
@@ -231,3 +253,56 @@ sequences for the two demo runs (values pinned to `validation/GROUND_TRUTH_SCENA
 `mock_stream/replay.py` serves them over real SSE at `/api/stream` (see its header for
 usage). `push_fixtures/` holds the exact push payloads + the documented simctl command.
 Frontend and iOS build against these with zero backend; swapping to real = base-URL flip.
+
+## Frontend integration (additive endpoints — NOT frozen, backend-owned)
+
+The frozen event/push/validation contracts above are the source of truth. These
+extra HTTP endpoints are additive helpers the web control-room and the iOS app
+use; they never change the frozen shapes.
+
+### Live + replay stream
+- `GET /api/stream` (SSE) — live events; full history replayed on connect,
+  `Last-Event-ID` resume. Offline: `python contracts/mock_stream/replay.py
+  run_confirm.ndjson` serves the same wire at `/api/stream` (base-URL flip only).
+- Trigger: `POST /api/demo/inject-fault` `{"scenario":"confirm"|"pivot"}` (or
+  `{"alarm_code":"...","site_id":"..."}`). Reset: `POST /api/demo/reset`.
+
+### Clickable citations — `GET /api/citations/{doc_id}?claim=<str>`
+Every load-bearing `citation` in the stream is `{"doc_id","claim"}` (plus optional
+`title`,`page`). To open a source chip, call this endpoint with that exact
+`doc_id` and `claim`:
+
+```
+GET /api/citations/V4?claim=rectifier-lost%20alarm%20signature
+200 {
+  "doc_id": "V4",
+  "title": "Vertiv NetSure 2100 -48VDC manual",
+  "section": "Plant architecture and N+1 redundancy",
+  "snippet": "…the bus stays at float and the batteries are not called upon while N modules still carry the load. This is why a lone rectifier-lost alarm…",
+  "source_path": "corpus/vendor/v4_netsure2100.pdf"
+}
+```
+- Resolvable `doc_id`s: `V4, S1, V6, FIST-3-6, TM-5-693, UFC-3-540-07, O1, O5, S2, V2`
+  (the pivot's rank-1 cites **S2** "measurement point failure" + **V2** "supervision module").
+  O5 is served from an inline `text` field (`source_path: "(inline)"`); the `.pdf`
+  paths are plain-text markdown, served as text.
+- `404` (clean) when the `doc_id` is unknown or its source is not materialised.
+  `retrieval_performed.results[].doc_id` are search hits — only `citation` objects
+  (on causes, steps, report) are guaranteed resolvable.
+
+### Matchmaking panel — the `responder_matched` event
+Render event #15 (`responder_matched`, above) as the roster tightening: `candidates`
+is the pool considered, `chosen` is the retained technician with the skill+zone
+`reason`. It arrives between `diagnostic_ready` and `push_sent` on the initial
+phase 1 (never on a pivot).
+
+### iOS device registration — `POST /api/devices`
+`{"device_token": str, "platform": "ios", "operator_id": str|null}` → `204`. Lets
+`diagnostic_ready` route a real APNs push to the matched operator's iPhone.
+
+### Field validation from the phone — `POST /api/validation`
+Accepts the frozen full body (above) AND the iOS card shape:
+`{"incident_id","status":"confirmed"}` or
+`{"incident_id","status":"rejected","measurement":{"value","unit"}}` → `200`
+`{"status":"accepted","incident_id","result":"confirmed"|"pivot"}`. A `rejected`
+counter-measurement drives the pivot re-diagnosis.

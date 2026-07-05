@@ -169,3 +169,17 @@ client's automatic single re-prompt on invalid JSON is a **safety net, not a sub
 for enough tokens — a payload that truncates at the cap will just truncate again. When an
 agent's output grows (more ranked causes, longer procedures), bump its constant, don't lean
 on the re-prompt.
+
+---
+
+## Cost-avoided figure = seed-derived 6800 USD  [ADOPTED — dev-backend, 2026-07-05]
+
+**Date:** 2026-07-05 · **Author:** @vgtray (dev-backend) · **Source:** CURRENT_STATE divergence (6800 vs 4180)
+
+The confirm-run `cost.avoided` is the value **derivable from the current seeds**:
+`downtime 5.00/min × 240 min (gold restore_target) × 1.5 (gold priority_weight) + 5000 SLA
+breach penalty = 6800.00 USD` (`backend/app/tools/cost.py`, `sla_params.csv`,
+`cost_params.csv`). The hand-authored fixture value `4180.00` predated the flat-penalty
+seed model and is retired. Applied everywhere: the deterministic CostEngine tool (already
+6800, proven by `test_cost_inventory_agent`), the frozen `EVENTS.md` example, and both
+`contracts/mock_stream/` fixtures now read 6800.00.

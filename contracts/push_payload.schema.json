@@ -46,6 +46,16 @@
           "equipment": { "type": "string" }
         }
       }
+    },
+    "reading": {
+      "type": "object",
+      "description": "load-bearing telemetry reading for the iPhone card (additive, optional; no confidence)",
+      "properties": {
+        "value": { "type": "number" },
+        "unit": { "type": "string" },
+        "point": { "type": "string" },
+        "metric": { "type": "string" }
+      }
     }
   }
 }

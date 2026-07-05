@@ -78,6 +78,7 @@ async def reset(request: Request):
     request.app.state.orchestrator.reset()
     request.app.state.watchdog.reset()
     request.app.state.bus.reset()
+    request.app.state.push_service.reset()
     request.app.state.idempotency.clear()
     request.app.state.dispatch_tool.release_all()
     return {"status": "idle"}

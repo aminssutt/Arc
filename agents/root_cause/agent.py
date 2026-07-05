@@ -439,6 +439,17 @@ class RootCauseAgent:
                 parts.append(str(equip))
             if correlation.get("localized_to"):
                 parts.append(str(correlation["localized_to"]))
+        for m in self._field_measurements(data.context):
+            metric, value = m.get("metric"), m.get("value")
+            if metric:
+                parts.append(str(metric))
+            if value is not None:
+                parts.append(str(value))
+        if self._field_measurements(data.context):
+            # A field measurement is on hand (pivot): steer retrieval toward the
+            # measurement-vs-alarm discrimination so the re-query is NOT identical
+            # to the initial pass.
+            parts.append("field measurement independent verification sensing measurement path integrity")
         parts.append("root cause diagnosis")
         # dedup preserving order, drop falsy
         return " ".join(dict.fromkeys(p for p in parts if p))
@@ -463,7 +474,72 @@ class RootCauseAgent:
                 lines.append(f"localized to {correlation['localized_to']}")
             if correlation.get("blast_radius"):
                 lines.append(f"blast radius: {correlation['blast_radius']}")
+        interps = self._measurement_interpretations(data.context)
+        if interps:
+            # Physics computed in code (magnitudes vs seeded threshold): the model
+            # must NOT re-derive it from the raw signed number.
+            for it in interps:
+                lines.append(self._format_interpretation(it))
+        else:
+            for m in self._field_measurements(data.context):
+                metric = m.get("metric", "?")
+                value = m.get("value")
+                unit = m.get("unit", "")
+                point = f" @ {m['point']}" if m.get("point") else ""
+                if value is not None:
+                    lines.append(
+                        f"FIELD MEASUREMENT (independent ground truth){point}: {metric} = {value} {unit}".rstrip()
+                        + " — if this contradicts the alarm, the measurement wins (see the discriminant rule)")
         return lines
+
+    @staticmethod
+    def _measurement_interpretations(context: Any) -> list[dict[str, Any]]:
+        """Code-computed physical verdicts injected by the orchestrator (magnitudes
+        vs seeded thresholds). Present on a pivot; the model trusts these over the
+        raw signed reading."""
+        if not isinstance(context, dict):
+            return []
+        mi = context.get("measurement_interpretation")
+        return [x for x in mi if isinstance(x, dict)] if isinstance(mi, list) else []
+
+    @staticmethod
+    def _format_interpretation(it: dict[str, Any]) -> str:
+        point = it.get("point") or "field point"
+        unit = it.get("unit", "") or "V"
+        mag = it.get("magnitude")
+        status = it.get("status")
+        threshold = it.get("threshold")
+        if status == "healthy":
+            head = (f"{point} field-measured {mag} {unit} magnitude — ABOVE the {threshold} {unit} "
+                    f"undervoltage alarm threshold: the bus is HEALTHY (on float, magnitude above threshold)")
+        elif status == "unhealthy":
+            head = (f"{point} field-measured {mag} {unit} magnitude — BELOW the {threshold} {unit} "
+                    f"undervoltage alarm threshold: a REAL undervoltage")
+        else:
+            head = f"{point} field-measured {mag} {unit} magnitude — no calibrated threshold; treat with caution"
+        tail = ""
+        tel = it.get("telemetry_magnitude")
+        if tel is not None and threshold is not None:
+            rel = "below" if tel < threshold else "at/above"
+            contra = "CONTRADICTED by" if status == "healthy" else "consistent with"
+            tail = (f". Remote telemetry read {tel} {unit} magnitude ({rel} threshold), {contra} the "
+                    f"independent field measurement")
+        return f"FIELD MEASUREMENT INTERPRETATION (computed from seeds): {head}{tail}."
+
+    @staticmethod
+    def _field_measurements(context: Any) -> list[dict[str, Any]]:
+        """Technician field measurements present on a pivot re-diagnosis (empty on
+        the initial pass). Read from context['measurements'] or the raw
+        validation_event — the counter-measurement that drives discrimination."""
+        if not isinstance(context, dict):
+            return []
+        ms = context.get("measurements")
+        if isinstance(ms, list):
+            return [m for m in ms if isinstance(m, dict)]
+        ve = context.get("validation_event")
+        if isinstance(ve, dict) and isinstance(ve.get("measurements"), list):
+            return [m for m in ve["measurements"] if isinstance(m, dict)]
+        return []
 
     @staticmethod
     def _iter_failures(context: Any) -> Iterator[dict[str, Any]]:

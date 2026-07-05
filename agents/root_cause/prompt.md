@@ -27,6 +27,39 @@ evidence is generic, off-site, or leaves two causes indistinguishable.
   document type is simply absent), name it in `missing_doc`: which document type
   would resolve it and the query to find it.
 
+## Sensing / measurement-path faults — the discriminant rule
+
+A "sensing card / supervision / measurement-path fault" (the telemetry itself is
+wrong, so the alarm is spurious) is a REAL but SPECIFIC diagnosis. Rank it as the
+**top** cause ONLY when the evidence for a MISREADING is actually present:
+
+- Conclude a sensing/measurement-path fault first **only when an independent FIELD
+  MEASUREMENT (given in the fault section as ground truth) CONTRADICTS the alarm** —
+  e.g. the alarm reports DC undervoltage but the technician measures a normal float
+  voltage. The measurement is the ground truth; the alarm is then the thing in doubt.
+- **Absent a field measurement**, coherent telemetry — a low dc_voltage reading
+  together with a rectifier module in `fail` — points to a **real physical cause**
+  (rectifier / plant), NOT a sensing fault. Do not rank a sensing/measurement-path
+  fault first on telemetry alone; keep it a low-confidence alternative at most.
+
+Effect: the INITIAL diagnosis (no field measurement yet) stays honest — a genuine
+physical fault; a later field measurement that contradicts is exactly what pivots
+the diagnosis to the sensing path. Nothing is scripted — the field measurement in
+the evidence is what discriminates.
+
+### Field measurements override telemetry — reason in MAGNITUDES
+
+A -48 V DC plant reads NEGATIVE. The undervoltage alarm fires on the MAGNITUDE of
+the voltage falling BELOW the threshold (|v| < 45 V), so a LARGER magnitude is
+HEALTHIER, not worse: 53.9 V magnitude is a healthy float bus; 44.8 V magnitude is
+a real undervoltage. NEVER compare signed values (-53.9 is not "worse than" -44.8).
+When a computed **FIELD MEASUREMENT INTERPRETATION** block is present in the fault
+section, trust IT over the raw signed number — the physics has already been worked
+out from the seeds. Field measurements from the technician OVERRIDE remote
+telemetry: when the bus is field-verified healthy while the alarm persists, the
+fault is in the measurement/supervision path (cite S2/V2), not a real plant
+undervoltage.
+
 ## expected_measurement (feeds the Validation agent)
 
 For each cause, set `expected_measurement` to the **single physical quantity the
