@@ -1,49 +1,40 @@
-# /frontend — Arc control room (Next.js)
+# Arc Control Room Web
 
-- **Owner:** daniwavy5032 · scaffolded by aminssutt — **coordinate before large changes.**
-- **Goes here:** Next.js control-room web app (NOC monitoring) — SSE client, event renderers, citations UI, action-report view.
-- **Does NOT go here:** the iOS app (`/ios`), backend/API code (`/backend`), design specs/tokens (`/design`).
+Next.js control-room surface for the NOC engineer demo path.
 
-The NOC **reasoning cockpit**: a live view of the incident as the agents reason,
-ground, and act. Consumes the backend SSE stream and drives the demo.
+## Capabilities
 
-## What it does
-- Subscribes to `GET /api/stream` (Server-Sent Events) and renders the incident
-  timeline live: fault → correlation/root-cause (with **retrievals** and the
-  ranked **diagnosis + citations**) → **field-validation** (human loop) →
-  remediation → **action report** with the **citation drill-down** (click any
-  source → opens the exact document at its page).
-- Trigger a run: `Inject — Confirm` / `Inject — Pivot` (`POST /api/demo/inject-fault`),
-  `Reset` (`POST /api/demo/reset`).
-- Human loop: while awaiting validation, submit the technician's busbar
-  measurement + verdict (`POST /api/validation`) — a healthy float (−53.9 V)
-  triggers the live **pivot**.
+- Streams the live incident lifecycle from `GET /api/stream`.
+- Triggers deterministic confirm and pivot scenarios.
+- Shows the site/factory fault location in Simple mode.
+- Shows multi-agent orchestration, responder matching, and mobile validation in Technical mode.
+- Submits field validation and produces a cited intervention report.
 
 ## Run
-The backend (FastAPI) must be running — from the repo root:
-```bash
-python -m uvicorn backend.app.main:app --port 8000     # backend
+
+Start the backend from the repository root:
+
+```sh
+python -m uvicorn backend.app.main:app --port 8000
 ```
-Then the frontend:
-```bash
+
+Then start the frontend:
+
+```sh
 cd frontend
-cp .env.example .env.local        # points at http://localhost:8000 by default
+cp .env.example .env.local
 npm install
-npm run dev                       # http://localhost:3000
+npm run dev
 ```
-Backend CORS is open, so the cross-origin SSE + POST work out of the box.
-For a fully live demo with real diagnoses/citations, set the Vultr key in the
-backend env (else it runs on the offline dummy agents).
+
+The frontend runs at `http://localhost:3000` and uses `http://127.0.0.1:8000`
+by default. Override the API URL with `NEXT_PUBLIC_ARC_BACKEND_URL`.
 
 ## Structure
-```
-app/           layout + globals (NOC design tokens, light/dark) + the control-room page
-lib/events.ts  event contract types + useIncidentStream() SSE hook
-lib/api.ts     API base + inject/reset/validation calls
-components/     TriggerBar · EventCard (timeline) · ReportCard · CitationTrail · ValidationForm
-```
 
-## Design
-Direction: **reasoning-cockpit, anti-dashboard** (per `/design`). Dark NOC ground,
-one accent, monospace for codes/IDs, semantic colors for state (confirmed / pivot /
-warning). Both themes; manual toggle in the trigger bar.
+```text
+src/app/          application routes
+src/components/   control-room and landing components
+src/lib/          backend contracts, event reducer, reports, session
+src/motion/       shared motion primitives and tokens
+```
