@@ -136,6 +136,45 @@ export default function LandingPage() {
         </div>
       </SectionReveal>
 
+      {/* ── The site — a telecom equipment shelter Arc watches ──────────── */}
+      <section className="max-w-content mx-auto px-6 sm:px-10 pt-4 sm:pt-6">
+        <FadeIn className="overflow-hidden rounded-card border border-surface-line bg-surface">
+          <div className="grid items-center lg:grid-cols-[1fr_1.4fr]">
+            <div className="order-2 p-7 sm:p-10 lg:order-1">
+              <p className="eyebrow text-[#4d9dff]">The site</p>
+              <h3 className="mt-3 font-display text-2xl sm:text-[1.75rem] leading-snug text-paper text-balance">
+                What Arc watches: one cell-site equipment shelter.
+              </h3>
+              <p className="mt-4 max-w-prose text-[15px] leading-relaxed text-paper/70">
+                Racks, transport links, the &minus;48&nbsp;V DC power plant, the patch panel &mdash; down to the
+                operator&apos;s phone. Every node feeds the live signal stream, and when a single rectifier
+                drifts the whole site is on the clock.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-2">
+                {["racks", "transport", "−48 V DC plant", "patch panel"].map((t) => (
+                  <span
+                    key={t}
+                    className="rounded-md border border-surface-line px-2 py-0.5 font-mono text-[11px] text-paper/55"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="order-1 lg:order-2">
+              <Image
+                src="/assets/telecom-site.png"
+                alt="A telecom site equipment shelter: server racks linked by overhead cable trays to a network switch, a patch panel, an operator phone and a workstation."
+                width={1536}
+                height={1024}
+                sizes="(max-width: 1024px) 100vw, 58vw"
+                className="h-auto w-full"
+              />
+            </div>
+          </div>
+        </FadeIn>
+      </section>
+
       <Hairline />
 
       {/* ── 02 The agent team ───────────────────────────────────────────── */}

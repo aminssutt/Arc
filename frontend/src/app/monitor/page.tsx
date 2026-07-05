@@ -235,6 +235,13 @@ export default function MonitorPage() {
     () => () => {
       clearTimers();
       streamAbortRef.current?.abort();
+      // Null the ref so a StrictMode remount (dev) — or any remount — opens a
+      // FRESH stream. Without this, startStream()'s `if (streamAbortRef.current)`
+      // guard early-returns after the cleanup abort, leaving `streaming` true but
+      // the SSE connection dead — so "Run incident" POSTs to the backend yet no
+      // events stream back and nothing renders (the reported bug). toggleStream
+      // already nulls the ref, which is why clicking "Stream on" twice unstuck it.
+      streamAbortRef.current = null;
     },
     [clearTimers],
   );
