@@ -1,5 +1,7 @@
 ![Arc — multi-agent telecom fault response](docs/assets/arc-banner.png)
 
+**[▶ Watch the 60-second demo](https://youtu.be/ohvx1NQniWc)**
+
 # Arc
 
 **Multi-agent network operations for telecom site fault response** — RAISE Summit, Vultr track.

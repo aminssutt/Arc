@@ -40,7 +40,7 @@ const BTN_SKY =
 
 // 👉 Paste the YouTube video id here when the demo video is ready (the part after
 //    `watch?v=` or `youtu.be/`), e.g. "dQw4w9WgXcQ". Empty string = placeholder.
-const DEMO_VIDEO_ID = "";
+const DEMO_VIDEO_ID = "ohvx1NQniWc";
 
 // ── §01 problem beats ────────────────────────────────────────────────────────
 const PROBLEM_BEATS = [
