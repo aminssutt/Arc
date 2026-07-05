@@ -47,15 +47,23 @@ class Watchdog:
         # (site_id, alarm_code) -> {"first_breach": epoch, "fired": bool}
         self._states: dict[tuple[str, str], dict[str, Any]] = {}
         self._active_incident_sites: set[str] = set()
+        # Fault signatures that already produced an incident THIS session. A
+        # resolved/consumed fault must never re-fire (no push spam) until an
+        # explicit reset re-arms the demo. Cleared ONLY by reset().
+        self._fired_signatures: set[tuple[str, frozenset]] = set()
 
     # -- lifecycle -----------------------------------------------------------
     def reset(self) -> None:
         self._states.clear()
         self._active_incident_sites.clear()
+        self._fired_signatures.clear()   # re-arm: the same fault may be injected again
 
     def incident_closed(self, site_id: str) -> None:
         self._active_incident_sites.discard(site_id)
         self._states = {k: v for k, v in self._states.items() if k[0] != site_id}
+        # NB: _fired_signatures is intentionally NOT cleared here — a fault that has
+        # already run must not re-trigger a fresh incident (and a fresh push) just
+        # because its replayed signals are still visible. Only reset() re-arms.
 
     # -- ingestion -----------------------------------------------------------
     async def ingest(self, signal: dict[str, Any]) -> None:
@@ -78,6 +86,10 @@ class Watchdog:
                 if self._on_additional:
                     await self._on_additional(site_id, failures)
                 continue
+            signature = (site_id, frozenset(f["alarm_code"] for f in failures))
+            if signature in self._fired_signatures:
+                continue  # one-shot: this fault already fired an incident this session
+            self._fired_signatures.add(signature)
             self._active_incident_sites.add(site_id)
             family = self._family_of(failures[0])
             await self._on_fault(site_id, family, failures, trigger[site_id])

@@ -7,6 +7,14 @@ import os
 os.environ["VULTR_INFERENCE_API_KEY"] = ""
 os.environ["VULTR_API_KEY"] = ""
 
+# Tests must never do a real APNs send or touch the demo device store: force file
+# delivery and an isolated per-run device registry. Otherwise a bogus test token +
+# an apns-mode .env would hit Apple's sandbox and pollute the persisted store.
+import tempfile as _tempfile
+os.environ["ARC_PUSH_MODE"] = "file"
+os.environ["ARC_PUSH_MIN_INTERVAL_S"] = "0"   # no wall-clock gating in tests
+os.environ["ARC_DEVICE_STORE"] = os.path.join(_tempfile.mkdtemp(prefix="arc-test-dev-"), "devices.runtime.json")
+
 import pytest
 from jsonschema import Draft202012Validator
 

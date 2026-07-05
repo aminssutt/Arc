@@ -40,7 +40,9 @@
     { "if": { "properties": { "type": { "const": "doc_requested" } } },
       "then": { "properties": { "data": { "$ref": "#/$defs/docRequested" } } } },
     { "if": { "properties": { "type": { "const": "incident_resolved" } } },
-      "then": { "properties": { "data": { "$ref": "#/$defs/incidentResolved" } } } }
+      "then": { "properties": { "data": { "$ref": "#/$defs/incidentResolved" } } } },
+    { "if": { "properties": { "type": { "const": "responder_matched" } } },
+      "then": { "properties": { "data": { "$ref": "#/$defs/responderMatched" } } } }
   ],
   "$defs": {
     "eventType": {
@@ -48,7 +50,7 @@
                "retrieval_performed", "diagnostic_ready", "push_sent",
                "awaiting_field_validation", "validation_received", "validation_result",
                "remediation_ready", "action_report_ready", "doc_requested",
-               "incident_resolved"]
+               "incident_resolved", "responder_matched"]
     },
     "family": { "enum": ["energy", "environment", "rf", "transport"] },
     "agent": { "enum": ["correlation", "root_cause", "validation", "remediation", "cost_inventory_dispatch"] },
@@ -402,6 +404,31 @@
         "summary": { "type": "string" },
         "total_duration_s": { "type": "number" },
         "outcome": { "enum": ["resolved", "downgraded"] }
+      }
+    },
+    "responderMatched": {
+      "type": "object",
+      "required": ["chosen", "candidates"],
+      "properties": {
+        "chosen": { "$ref": "#/$defs/responderCard" },
+        "candidates": { "type": "array", "items": { "$ref": "#/$defs/responderCard" },
+                        "description": "roster considered, narrowing to the chosen technician" },
+        "fault": { "type": "object", "description": "family/equipment_class/code/region routed on" },
+        "difficulty": { "type": "string" }
+      }
+    },
+    "responderCard": {
+      "type": "object",
+      "required": ["employee_id", "name"],
+      "properties": {
+        "employee_id": { "type": "string" },
+        "name": { "type": "string" },
+        "tier": { "type": "string", "description": "junior|confirmé|senior" },
+        "region": { "type": "string", "description": "zone" },
+        "matched_skills": { "type": "array", "items": { "type": "string" } },
+        "score": { "type": "number" },
+        "reason": { "type": "string", "description": "skill+zone rationale" },
+        "out_of_zone": { "type": "boolean" }
       }
     }
   }

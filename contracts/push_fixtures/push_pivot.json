@@ -1,5 +1,5 @@
 {
-  "Simulator Target Bundle": "com.arc.technician",
+  "Simulator Target Bundle": "com.arc.operator",
   "aps": {
     "alert": {
       "title": "Arc — PAR-021-NORD: energy fault",
@@ -18,7 +18,23 @@
   },
   "family": "energy",
   "failures": [
-    { "id": "F1", "code": "alarmMajorRectifier", "severity": "major", "equipment": "rectifier-2" },
-    { "id": "F2", "code": "DC_UNDERVOLTAGE", "severity": "major", "equipment": "busbar" }
-  ]
+    {
+      "id": "F1",
+      "code": "alarmMajorRectifier",
+      "severity": "major",
+      "equipment": "rectifier-2"
+    },
+    {
+      "id": "F2",
+      "code": "DC_UNDERVOLTAGE",
+      "severity": "major",
+      "equipment": "busbar"
+    }
+  ],
+  "reading": {
+    "value": -45.0,
+    "unit": "V",
+    "point": "busbar",
+    "metric": "dc_voltage_v"
+  }
 }
