@@ -90,9 +90,13 @@ export type BackendEventEnvelope = {
   data: Record<string, unknown>;
 };
 
+/** A field counter-measurement typed on the on-site phone. */
+export type FieldMeasurement = { value: number; unit: string };
+
 export function makeDemoValidation(
   incident: IncidentPushPayload,
   verdict: ValidationVerdict,
+  measurement?: FieldMeasurement,
 ): ValidationSubmission {
   return {
     incident_id: incident.incident_id,
@@ -106,12 +110,16 @@ export function makeDemoValidation(
       failure_id: failure.id,
       verdict,
     })),
+    // The on-site phone can carry the exact value the technician measured — it
+    // becomes the backend's ground truth (a value contradicting the diagnosis
+    // drives the pivot). Absent an explicit reading, keep the demo default so
+    // the existing one-tap "confirm" path is unchanged.
     measurements: [
       {
         metric: "dc_plant_voltage_v",
         point: "busbar",
-        value: 43.9,
-        unit: "V",
+        value: measurement?.value ?? 43.9,
+        unit: measurement?.unit ?? "V",
       },
     ],
   };

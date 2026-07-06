@@ -13,10 +13,11 @@ import { AgentDetailOverlay } from "@/components/investigation/AgentDetailOverla
 import { ActionReportPanel } from "@/components/investigation/ActionReportPanel";
 import { BuildingSituation } from "@/components/investigation/BuildingSituation";
 import { DebugDock } from "@/components/investigation/DebugDock";
+import { FieldPhone } from "@/components/investigation/FieldPhone";
 import { SituationLauncher } from "@/components/investigation/SituationLauncher";
 import { AppTopBar, CaseStatusChip } from "@/components/investigation/TopBar";
 import { BackendClient } from "@/lib/backend-client";
-import { extractPushPayload, makeDemoValidation, type DemoScenario, type IncidentPushPayload, type ValidationVerdict } from "@/lib/contracts";
+import { extractPushPayload, makeDemoValidation, type DemoScenario, type FieldMeasurement, type IncidentPushPayload, type ValidationVerdict } from "@/lib/contracts";
 import {
   actionForBackendEvent,
   initialInvestigationState,
@@ -213,13 +214,13 @@ export default function MonitorPage() {
   // app / /console make) so the end-to-end finale can complete without a phone.
   // This does NOT replace the real iOS validation path — it's an extra control.
   const submitFieldValidation = useCallback(
-    (verdict: ValidationVerdict) => {
+    (verdict: ValidationVerdict, measurement?: FieldMeasurement) => {
       if (!incident) {
         setStreamNote("No incident to validate yet — wait for the push_sent event.");
         return;
       }
       new BackendClient(backendURL)
-        .submitValidation(makeDemoValidation(incident, verdict))
+        .submitValidation(makeDemoValidation(incident, verdict, measurement))
         .catch((error: unknown) => {
           setStreamNote(error instanceof Error ? error.message : "validation failed");
         });
@@ -298,25 +299,43 @@ export default function MonitorPage() {
           </div>
         </div>
 
-        <div className="mt-4 min-h-0 w-full flex-1 overflow-hidden rounded-xl border border-borderSubtle bg-background">
-          <div className={viewMode === "simple" ? "h-full w-full" : "hidden"}>
-            <BuildingSituation
-              evidence={state.evidence}
-              selectedId={selectedEvidence}
-              onSelect={(id) => setSelectedEvidence((current) => current === id ? null : id)}
-            />
+        <div className="mt-4 flex min-h-0 w-full flex-1 gap-4 overflow-hidden">
+          {/* Left — the control room (situation map or agent orchestration). */}
+          <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-borderSubtle bg-background">
+            <div className={viewMode === "simple" ? "h-full w-full" : "hidden"}>
+              <BuildingSituation
+                evidence={state.evidence}
+                selectedId={selectedEvidence}
+                onSelect={(id) => setSelectedEvidence((current) => current === id ? null : id)}
+              />
+            </div>
+            <div className={viewMode === "technical" ? "h-full w-full" : "hidden"}>
+              <AgentGraph
+                agents={state.agents}
+                decisionLabel={state.decisionLabel}
+                decisionCopy={state.decisionCopy}
+                responder={state.responder}
+                activity={state.activity}
+                selectedAgent={selectedAgent}
+                onSelectAgent={setSelectedAgent}
+              />
+            </div>
           </div>
-          <div className={viewMode === "technical" ? "h-full w-full" : "hidden"}>
-            <AgentGraph
-              agents={state.agents}
-              decisionLabel={state.decisionLabel}
-              decisionCopy={state.decisionCopy}
-              responder={state.responder}
-              activity={state.activity}
-              selectedAgent={selectedAgent}
-              onSelectAgent={setSelectedAgent}
-            />
-          </div>
+
+          {/* Right — the field technician's device, in parallel. Tapping
+              Validate / Refuse fires the real POST /api/validation, so the
+              agent panel on the left advances for real from the phone. */}
+          <aside className="hidden min-h-0 w-[340px] shrink-0 lg:block">
+            <div className="flex h-full min-h-0 flex-col rounded-xl border border-borderSubtle bg-panelMuted p-3">
+              <FieldPhone
+                incident={incident}
+                caseStatus={state.caseStatus}
+                responder={state.responder}
+                streamNote={streamNote}
+                onValidate={submitFieldValidation}
+              />
+            </div>
+          </aside>
         </div>
       </main>
 
