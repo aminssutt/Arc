@@ -210,8 +210,8 @@ export function AgentGraph({
   }, []);
 
   return (
-    <div className="flex h-full min-h-0 w-full bg-background">
-      <div ref={fitRef} className="flex min-h-0 min-w-0 flex-1 items-center justify-center">
+    <div className="flex h-full min-h-0 w-full overflow-x-auto bg-background scroll-slim lg:overflow-visible">
+      <div ref={fitRef} className="flex min-h-0 min-w-[680px] flex-1 items-center justify-center lg:min-w-0">
         <div
           className="relative shrink-0"
           style={{

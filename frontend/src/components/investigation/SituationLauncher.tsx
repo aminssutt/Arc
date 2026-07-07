@@ -37,7 +37,7 @@ export function SituationLauncher({
           type="button"
           disabled={running || (awaitingValidation && !canValidate)}
           onClick={() => awaitingValidation ? onValidate("real") : onRun("confirm")}
-          className="inline-flex h-9 items-center gap-2 rounded-md bg-[#0078AE] px-3 text-[13px] font-semibold text-white transition-all duration-300 ease-mech hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-11 items-center gap-2 rounded-md bg-[#0078AE] px-3 lg:h-9 text-[13px] font-semibold text-white transition-all duration-300 ease-mech hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Play className="h-4 w-4" fill="currentColor" />
           {running ? "Starting…" : awaitingValidation ? "Confirm verdict" : "Run incident"}
@@ -46,7 +46,7 @@ export function SituationLauncher({
           type="button"
           disabled={running || (awaitingValidation && !canValidate)}
           onClick={() => awaitingValidation ? onValidate("false") : onRun("pivot")}
-          className="inline-flex h-9 items-center gap-2 rounded-md border border-[#0078AE]/50 px-3 text-[13px] font-semibold text-[#0078AE] transition-colors hover:bg-[#0078AE]/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-11 items-center gap-2 rounded-md border border-[#0078AE]/50 px-3 lg:h-9 text-[13px] font-semibold text-[#0078AE] transition-colors hover:bg-[#0078AE]/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <GitBranch className="h-4 w-4" />
           {awaitingValidation ? "Pivot diagnosis" : "Run pivot path"}
@@ -54,7 +54,7 @@ export function SituationLauncher({
         <button
           type="button"
           onClick={onReset}
-          className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-transparent px-3 text-[13px] font-semibold text-textSecondary transition-colors hover:border-borderStrong hover:text-text"
+          className="inline-flex h-11 items-center gap-2 rounded-md border border-border bg-transparent px-3 lg:h-9 text-[13px] font-semibold text-textSecondary transition-colors hover:border-borderStrong hover:text-text"
         >
           <RotateCcw className="h-4 w-4" />
           Reset

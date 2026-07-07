@@ -249,16 +249,16 @@ export default function MonitorPage() {
   );
 
   return (
-    <div className="flex h-screen min-h-[680px] flex-col overflow-hidden bg-outer">
+    <div className="flex min-h-[100dvh] flex-col bg-outer lg:h-screen lg:min-h-[680px] lg:overflow-hidden">
       <AppTopBar crumb="Site PAR-021-NORD   /   -48V rectifier fault">
-        <p className="font-mono text-body-sm text-textSecondary">
+        <p className="hidden font-mono text-body-sm text-textSecondary md:block">
           {state.caseId}&nbsp;&nbsp;·&nbsp;&nbsp;started {state.startedAt}
         </p>
         <CaseStatusChip caseStatus={state.caseStatus} />
       </AppTopBar>
 
-      <main className="flex min-h-0 w-full flex-1 flex-col px-6 pb-6 pt-5">
-        <div className="flex w-full shrink-0 items-center justify-between gap-4">
+      <main className="flex w-full flex-1 flex-col px-4 pb-8 pt-4 lg:min-h-0 lg:px-6 lg:pb-6 lg:pt-5">
+        <div className="flex w-full shrink-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
           <div className="flex flex-col gap-1">
             <span className="font-mono text-[11px] uppercase tracking-label text-ember">Live incident</span>
             <h1 className="font-display text-h5 font-semibold text-text">
@@ -270,8 +270,8 @@ export default function MonitorPage() {
                 : "One incident state, passed from detection to human validation."}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 overflow-hidden rounded-md border border-border" aria-label="Display detail">
+          <div className="flex flex-wrap items-center gap-2 lg:gap-3">
+            <div className="flex h-11 overflow-hidden rounded-md border border-border lg:h-9" aria-label="Display detail">
               {(["simple", "technical"] as const).map((mode) => (
                 <button
                   key={mode}
@@ -299,9 +299,9 @@ export default function MonitorPage() {
           </div>
         </div>
 
-        <div className="mt-4 flex min-h-0 w-full flex-1 gap-4 overflow-hidden">
+        <div className="mt-4 flex w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:overflow-hidden">
           {/* Left — the control room (situation map or agent orchestration). */}
-          <div className="min-h-0 flex-1 overflow-hidden rounded-xl border border-borderSubtle bg-background">
+          <div className="h-[58vh] min-h-[360px] overflow-hidden rounded-xl border border-borderSubtle bg-background lg:h-auto lg:min-h-0 lg:flex-1">
             <div className={viewMode === "simple" ? "h-full w-full" : "hidden"}>
               <BuildingSituation
                 evidence={state.evidence}
@@ -325,8 +325,8 @@ export default function MonitorPage() {
           {/* Right — the field technician's device, in parallel. Tapping
               Validate / Refuse fires the real POST /api/validation, so the
               agent panel on the left advances for real from the phone. */}
-          <aside className="hidden min-h-0 w-[340px] shrink-0 lg:block">
-            <div className="flex h-full min-h-0 flex-col rounded-xl border border-borderSubtle bg-panelMuted p-3">
+          <aside className="w-full shrink-0 lg:min-h-0 lg:w-[340px]">
+            <div className="flex h-[560px] flex-col rounded-xl border border-borderSubtle bg-panelMuted p-3 lg:h-full lg:min-h-0">
               <FieldPhone
                 incident={incident}
                 caseStatus={state.caseStatus}
