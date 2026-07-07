@@ -301,7 +301,13 @@ export default function MonitorPage() {
 
         <div className="mt-4 flex w-full flex-col gap-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:overflow-hidden">
           {/* Left — the control room (situation map or agent orchestration). */}
-          <div className="h-[58vh] min-h-[360px] overflow-hidden rounded-xl border border-borderSubtle bg-background lg:h-auto lg:min-h-0 lg:flex-1">
+          <div
+            className={[
+              "overflow-hidden rounded-xl border border-borderSubtle bg-background lg:h-auto lg:min-h-0 lg:flex-1",
+              viewMode === "simple" ? "h-[58vh] min-h-[360px]" : "h-auto",
+            ].join(" ")}
+          >
+
             <div className={viewMode === "simple" ? "h-full w-full" : "hidden"}>
               <BuildingSituation
                 evidence={state.evidence}

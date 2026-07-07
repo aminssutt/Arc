@@ -5,7 +5,7 @@
  *
  * The Watchdog is the DETECTOR: it watches every live feed and, on a
  * `fault_detected`, hands the incident to the Orchestrator — it is NOT a peer
- * specialist. The Orchestrator (LangGraph, on Vultr) is the hub; it routes typed
+ * specialist. The Orchestrator (Arc's own custom orchestrator, on Vultr) is the hub; it routes typed
  * state to the six specialist agents that form the vertical SIDE RAIL, in the
  * real pipeline order: Correlation ▸ Root-Cause ▸ Responder-Matching ▸
  * Validation ▸ Remediation ▸ Cost/Inventory/Dispatch (ONE agent). A dispatch
@@ -178,8 +178,8 @@ function AgentOrchestrationImpl() {
           >
             <rect x={HUB.x} y={HUB.y} width={HUB.w} height={HUB.h} rx={16} fill="#0b1220" stroke={ACCENT.arc} strokeWidth={1.5} />
             <circle cx={HUB.x + 20} cy={HUB.y + 24} r={4} fill={ACCENT.arc} className="animate-signal-pulse" />
-            <text x={HUB.x + 34} y={HUB.y + 28} className="font-mono" fontSize={9} letterSpacing="1.5" fill={ACCENT.arc}>
-              LANGGRAPH · VULTR
+            <text x={HUB.x + 34} y={HUB.y + 28} className="font-mono" fontSize={8.5} letterSpacing="0.5" fill={ACCENT.arc}>
+              ARC ORCHESTRATOR · VULTR
             </text>
             <text x={HUB.x + 20} y={HUB.y + 60} className="font-display" fontSize={20} fontWeight={600} fill="#FAFAF7">
               Orchestrator

@@ -2,7 +2,7 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import { MapPin, ShieldCheck, Smartphone, UserCheck } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { RobotIcon } from "@/components/icons";
 import { EASE_MECH } from "@/motion/tokens";
 import {
@@ -17,7 +17,7 @@ import {
 // Agent Orchestration viewport — the live agentic flow, rebuilt as a pipeline
 // you can watch work in real time. Two bands map 1:1 onto the real backend
 // (backend/app/orchestrator.py):
-//   • COMMAND — the Watchdog opens the incident, the LangGraph Orchestrator
+//   • COMMAND — the Watchdog opens the incident, the Arc Orchestrator
 //     routes the typed state and feeds the specialist rail;
 //   • PIPELINE — Correlation → Root-Cause → Matching → Validation →
 //     Remediation → Cost/Dispatch, the exact order the Orchestrator sequences.
@@ -210,8 +210,10 @@ export function AgentGraph({
   }, []);
 
   return (
-    <div className="flex h-full min-h-0 w-full overflow-x-auto bg-background scroll-slim lg:overflow-visible">
-      <div ref={fitRef} className="flex min-h-0 min-w-[680px] flex-1 items-center justify-center lg:min-w-0">
+    <>
+    {/* ── DESKTOP (≥lg): the fit-to-width canvas — unchanged ───────────────── */}
+    <div className="hidden h-full min-h-0 w-full bg-background lg:flex">
+      <div ref={fitRef} className="flex min-h-0 min-w-0 flex-1 items-center justify-center">
         <div
           className="relative shrink-0"
           style={{
@@ -415,10 +417,164 @@ export function AgentGraph({
           })}
         </div>
       </div>
-
-      <span className="sr-only" aria-live="polite">
-        {decisionLabel}. {decisionCopy}. {activity.at(-1)?.detail ?? ""}
-      </span>
     </div>
+
+    {/* ── MOBILE (<lg): a vertical stacked pipeline — no horizontal scroll ──── */}
+    <div className="flex w-full flex-col bg-background p-4 lg:hidden">
+      {NODE_ORDER.map((id, index) => (
+        <Fragment key={id}>
+          {index > 0 && <MobileConnector status={agents[id]} reduce={reduce} />}
+          <MobileAgentCard
+            id={id}
+            status={agents[id]}
+            selected={id === selectedAgent}
+            responder={responder}
+            awaitingMobile={awaitingMobile}
+            reduce={reduce}
+            onClick={() => onSelectAgent(id === selectedAgent ? null : id)}
+          />
+        </Fragment>
+      ))}
+    </div>
+
+    <span className="sr-only" aria-live="polite">
+      {decisionLabel}. {decisionCopy}. {activity.at(-1)?.detail ?? ""}
+    </span>
+    </>
+  );
+}
+
+// ── Mobile vertical pipeline ─────────────────────────────────────────────────
+// A DOM-only stacked variant of the graph for <lg, so the whole pipeline reads
+// top-to-bottom inside 390px with zero horizontal scroll. Same status semantics
+// and the same rich matching / awaiting-validation content as the canvas nodes;
+// each card is tappable and opens the same detail overlay.
+function MobileConnector({ status, reduce }: { status: AgentStatus; reduce: boolean | null }) {
+  const color = status === "active" ? SKY : status === "done" ? "rgb(62 207 142)" : IDLE_LINK;
+  return (
+    <div className="flex h-4 items-stretch justify-center" aria-hidden>
+      <span
+        className={`w-[2.5px] rounded-full ${status === "active" && !reduce ? "animate-signal-pulse" : ""}`}
+        style={{ background: color }}
+      />
+    </div>
+  );
+}
+
+function MobileAgentCard({
+  id,
+  status,
+  selected,
+  responder,
+  awaitingMobile,
+  reduce,
+  onClick,
+}: {
+  id: AgentId;
+  status: AgentStatus;
+  selected: boolean;
+  responder: ChosenResponder | null;
+  awaitingMobile: boolean;
+  reduce: boolean | null;
+  onClick: () => void;
+}) {
+  const style = STATUS_STYLE[status];
+  const working = status === "active";
+  const pipelineIndex = AGENT_PIPELINE.indexOf(id);
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "relative w-full overflow-hidden rounded-lg border-2 p-3 text-left transition-[border-color,background-color] duration-300",
+        style.card,
+        selected ? "ring-2 ring-text" : "",
+      ].join(" ")}
+      style={{ boxShadow: working ? style.glow : undefined, opacity: status === "standby" ? 0.65 : 1 }}
+    >
+      {pipelineIndex >= 0 && (
+        <span className={`absolute right-3 top-3 font-mono text-[11px] font-semibold ${style.text}`}>
+          {String(pipelineIndex + 1).padStart(2, "0")}
+        </span>
+      )}
+      {working && !reduce && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0 rounded-lg border-2 animate-signal-pulse"
+          style={{ borderColor: style.ring }}
+        />
+      )}
+
+      {id === "matching" && responder ? (
+        <div className="flex flex-col gap-2.5">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-[#0078AE] text-white">
+              <UserCheck className="h-5 w-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-body-sm font-semibold leading-tight text-text">{responder.name}</p>
+              <p className="font-mono text-[9px] uppercase tracking-wide text-[#0078AE]">one technician selected</p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-1 font-mono text-[10px] leading-tight">
+            <span className="inline-flex items-center gap-1 text-textSecondary">
+              <ShieldCheck className="h-3 w-3 text-[#0078AE]" />
+              competence {responder.matchedSkills?.length ? "1.00" : "matched"}
+            </span>
+            <span className="inline-flex items-center gap-1 text-textSecondary">
+              <ShieldCheck className="h-3 w-3 text-[#0078AE]" />
+              seniority {responder.tier.toLowerCase()} · fit
+            </span>
+            <span
+              className={
+                responder.outOfZone
+                  ? "inline-flex items-center gap-1 text-warn"
+                  : "inline-flex items-center gap-1 text-resolve"
+              }
+            >
+              <MapPin className="h-3 w-3" />
+              {responder.outOfZone ? "out of zone" : `in zone${responder.region ? ` · ${responder.region}` : ""}`}
+            </span>
+          </div>
+        </div>
+      ) : id === "validation" && awaitingMobile ? (
+        <div className="flex items-center gap-3">
+          <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ember/12 text-ember">
+            {!reduce && <span className="absolute inset-0 animate-ping rounded-full border border-ember/50" />}
+            <Smartphone className="relative h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-body-sm font-semibold leading-tight text-text">Field validation</p>
+            <p className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold uppercase tracking-wide text-ember">
+              awaiting mobile <WorkingDots />
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3">
+          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded ${style.badge}`}>
+            <RobotIcon className="h-5 w-5" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <p className="text-body-sm font-medium leading-tight text-text">{AGENTS[id].name}</p>
+              {id === "orchestrator" && (
+                <span className="rounded bg-arc/10 px-1.5 py-0.5 font-mono text-[8px] uppercase tracking-wide text-arc">
+                  arc orchestrator · vultr
+                </span>
+              )}
+            </div>
+            {working ? (
+              <span className={`inline-flex items-center gap-1.5 font-mono text-[11px] ${style.text}`}>
+                working <WorkingDots />
+              </span>
+            ) : (
+              <span className={`font-mono text-[11px] ${style.text}`}>{style.label}</span>
+            )}
+          </div>
+        </div>
+      )}
+    </button>
   );
 }
