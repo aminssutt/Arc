@@ -10,16 +10,16 @@ import type { CaseStatus } from "@/lib/investigation";
 // right-side content ahead of the profile chip.
 export function AppTopBar({ crumb, children }: { crumb: string; children?: ReactNode }) {
   return (
-    <header className="flex w-full shrink-0 items-center justify-between border-b border-border bg-header px-6 py-4">
-      <div className="flex items-center gap-4 p-2.5">
-        <Link href="/">
-          <Image src="/assets/arc-logo.svg" alt="Arc" width={142} height={24} priority />
+    <header className="flex w-full shrink-0 items-center justify-between gap-2 border-b border-border bg-header px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
+      <div className="flex min-w-0 items-center gap-2 p-1.5 sm:gap-4 sm:p-2.5">
+        <Link href="/" className="shrink-0">
+          <Image src="/assets/arc-logo.svg" alt="Arc" width={142} height={24} priority className="h-5 w-auto sm:h-6" />
         </Link>
-        <div className="border-l border-borderStrong pl-4">
-          <p className="text-body text-textSecondary">{crumb}</p>
+        <div className="min-w-0 border-l border-borderStrong pl-3 sm:pl-4">
+          <p className="max-w-[26vw] truncate text-body-sm text-textSecondary sm:max-w-none sm:text-body">{crumb}</p>
         </div>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-4">
         {children}
         <ProfileMenu />
       </div>
@@ -60,7 +60,7 @@ export function CaseStatusChip({ caseStatus }: { caseStatus: CaseStatus }) {
   const chip = STATUS_CHIP[caseStatus];
   return (
     <span
-      className={`inline-flex h-8 items-center gap-2 rounded-md border px-3 font-mono text-[13px] font-semibold uppercase leading-none tracking-wide ${chip.className}`}
+      className={`inline-flex h-8 items-center gap-1.5 rounded-md border px-2 font-mono text-[11px] font-semibold uppercase leading-none tracking-wide sm:gap-2 sm:px-3 sm:text-[13px] ${chip.className}`}
     >
       {chip.pulse ? (
         <span className={`h-2 w-2 rounded-full ${chip.dot} animate-signal-pulse`} />

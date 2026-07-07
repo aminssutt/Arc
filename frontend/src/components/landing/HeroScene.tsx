@@ -102,13 +102,21 @@ export default function HeroScene() {
   // robot drifted out of frame. Swallow wheel in the capture phase on the
   // wrapper so it never reaches the canvas: the page scrolls normally (we never
   // preventDefault) and pointer tracking is untouched, so the robot still
-  // follows the cursor.
+  // follows the cursor. The same hijack happens on touch: a vertical swipe over
+  // the canvas is otherwise consumed as a camera orbit, trapping the page scroll.
+  // Swallow `touchmove` in capture too (never preventDefault — `touch-action:
+  // pan-y` on the wrapper lets the browser own the vertical scroll), so a finger
+  // drag scrolls the page while the canvas stops eating it.
   useEffect(() => {
     const el = splineWrapRef.current;
     if (!el) return;
-    const swallowWheel = (e: WheelEvent) => e.stopPropagation();
-    el.addEventListener("wheel", swallowWheel, { capture: true });
-    return () => el.removeEventListener("wheel", swallowWheel, { capture: true });
+    const swallow = (e: Event) => e.stopPropagation();
+    el.addEventListener("wheel", swallow, { capture: true });
+    el.addEventListener("touchmove", swallow, { capture: true, passive: true });
+    return () => {
+      el.removeEventListener("wheel", swallow, { capture: true });
+      el.removeEventListener("touchmove", swallow, { capture: true });
+    };
   }, []);
 
   // Entrance reveals — disabled under reduced motion (no offset, no delay).
@@ -242,7 +250,7 @@ export default function HeroScene() {
             className="absolute -inset-8 z-0 bg-[radial-gradient(circle_at_55%_45%,rgba(0,120,174,0.12),transparent_62%)] blur-2xl pointer-events-none"
           />
           <div className="relative z-[1]">
-            <div ref={splineWrapRef} className="spline-hero relative h-[320px] sm:h-[420px] lg:h-[500px] xl:h-[540px]">
+            <div ref={splineWrapRef} className="spline-hero relative h-[320px] touch-pan-y sm:h-[420px] lg:h-[500px] xl:h-[540px]">
               {reduced ? (
                 <SplinePoster />
               ) : (
