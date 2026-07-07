@@ -6,7 +6,7 @@ import { extractPushPayload } from "./contracts";
 //
 // Graph nodes mirror the REAL backend architecture (contracts/EVENTS.md,
 // backend/app/orchestrator.py, agents/responder_matching): the Watchdog opens
-// the incident, the LangGraph Orchestrator routes a typed state through the
+// the incident, the Arc orchestrator routes a typed state through the
 // phase-1 agents (correlation, root_cause), the Responder-Matching agent picks
 // THE ONE technician to notify, the human validation loop resolves the field
 // verdict, and the phase-2 agents (remediation, cost_inventory_dispatch)
@@ -15,7 +15,7 @@ import { extractPushPayload } from "./contracts";
 
 export type AgentId =
   | "main" // Watchdog — detects site faults, opens the incident
-  | "orchestrator" // LangGraph — routes the typed incident state
+  | "orchestrator" // Arc orchestrator — routes the typed incident state
   | "correlation" // Phase 1 — topology + alarms
   | "rootCause" // Phase 1 — grounded, cited diagnosis
   | "matching" // Responder-Matching — picks THE ONE technician
@@ -190,7 +190,7 @@ export const AGENTS: Record<AgentId, AgentInfo> = {
   orchestrator: {
     id: "orchestrator",
     name: "Orchestrator",
-    role: "LangGraph state machine — routes the typed incident state through every specialist in order.",
+    role: "Arc orchestrator — routes the typed incident state through every specialist in order.",
   },
   correlation: {
     id: "correlation",
