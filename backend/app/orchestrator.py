@@ -17,6 +17,7 @@ Agent failures/timeouts become `agent_completed status=error|timeout` events,
 never a crash (INT.5 groundwork).
 """
 import asyncio
+import logging
 from typing import Any
 
 from contracts import Agent, AgentInput
@@ -25,6 +26,8 @@ from agents.orchestration.citations import enrich_citations
 
 from backend.app.bus import EventBus
 from backend.app.seeds import Seeds
+
+logger = logging.getLogger("arc.orchestrator")
 
 
 class IllegalTransition(RuntimeError):
@@ -52,18 +55,22 @@ TRANSITIONS: dict[str, set[str]] = {
 
 class Orchestrator:
     def __init__(self, bus: EventBus, seeds: Seeds, agents: dict[str, Agent],
-                 push_service: Any, agent_timeout_s: float = 120.0) -> None:
+                 push_service: Any, agent_timeout_s: float = 120.0,
+                 auto_reset_s: float = 0.0) -> None:
         self.bus = bus
         self.seeds = seeds
         self.agents = agents
         self.push = push_service
         self.agent_timeout_s = agent_timeout_s
+        self.auto_reset_s = auto_reset_s
         self.state = IDLE
         self.incident: dict[str, Any] | None = None
         self._incident_counter = 0
         self._failure_counter = 0
         self._task: asyncio.Task | None = None
+        self._auto_reset_task: asyncio.Task | None = None
         self.on_incident_closed = None  # set by main to notify the watchdog
+        self.reset_hook = None          # set by main: the full app reset (auto-reset TTL)
 
     # -- state machine (BE.3: every transition asserted + unit-tested) --------
     def _transition(self, to: str) -> None:
@@ -78,17 +85,52 @@ class Orchestrator:
 
     def reset(self) -> None:
         """Demo reset (BE.11): back to idle, < 5 s (it is immediate)."""
+        self._cancel_auto_reset()
         if self._task and not self._task.done():
             self._task.cancel()
         self._task = None
         self.incident = None
         self.state = IDLE
 
+    # -- auto-reset TTL (idle-return after a terminal state) -------------------
+    def _arm_auto_reset(self) -> None:
+        """After a terminal state, schedule the TTL return to a clean idle.
+        No-op when auto_reset_s <= 0. Only one timer at a time (the new one
+        replaces any pending one); a manual reset or a new incident cancels it,
+        so an ACTIVE run is never reset."""
+        if self.auto_reset_s <= 0:
+            return
+        self._cancel_auto_reset()
+        self._auto_reset_task = asyncio.create_task(
+            self._auto_reset_after(self._incident_counter))
+
+    async def _auto_reset_after(self, generation: int) -> None:
+        """Wait the TTL, then run the SAME reset as POST /api/demo/reset — but
+        only if nothing changed: a bumped incident counter or a non-idle state
+        means a new/active run, which must never be reset. Any exception is
+        swallowed so a failed auto-reset can never take the server down."""
+        try:
+            await asyncio.sleep(self.auto_reset_s)
+            if generation != self._incident_counter or self.state != IDLE:
+                return  # a new incident / active run since arming — leave it alone
+            self._auto_reset_task = None  # disarm before the hook (it calls reset())
+            (self.reset_hook or self.reset)()
+        except asyncio.CancelledError:
+            raise
+        except Exception:  # noqa: BLE001 - a crashing auto-reset must never crash the server
+            logger.exception("auto-reset failed")
+
+    def _cancel_auto_reset(self) -> None:
+        task, self._auto_reset_task = self._auto_reset_task, None
+        if task is not None and not task.done():
+            task.cancel()
+
     # -- fault intake (from the Watchdog) --------------------------------------
     async def handle_fault(self, site_id: str, family: str,
                            failures: list[dict], trigger: dict) -> str | None:
         if self.state != IDLE:
             return None  # one incident at a time; feed keeps flowing, no crash
+        self._cancel_auto_reset()  # a new incident cancels any pending TTL auto-reset
         self._incident_counter += 1
         self._failure_counter = 0
         incident_id = f"INC-LIVE-{self._incident_counter:03d}"
@@ -434,6 +476,7 @@ class Orchestrator:
         self._transition(IDLE)
         if self.on_incident_closed:
             self.on_incident_closed(inc["site"].get("site_id", ""))
+        self._arm_auto_reset()  # TTL return to a clean idle (no-op when disabled)
 
     # -- degraded terminal path, phase 1 (INT.5 #51): same guarantee as #97 -----
     async def _terminate_degraded_phase1(self, failed_agent: str) -> None:
@@ -451,6 +494,7 @@ class Orchestrator:
         self._transition(IDLE)
         if self.on_incident_closed:
             self.on_incident_closed(inc["site"].get("site_id", ""))
+        self._arm_auto_reset()  # TTL return to a clean idle (no-op when disabled)
 
     # -- degraded terminal path (issue #97): the demo must ALWAYS finish --------
     @staticmethod
@@ -486,6 +530,7 @@ class Orchestrator:
         self._transition(IDLE)
         if self.on_incident_closed:
             self.on_incident_closed(inc["site"].get("site_id", ""))
+        self._arm_auto_reset()  # TTL return to a clean idle (no-op when disabled)
 
     def _assemble_degraded_report(self, failed_agent: str) -> dict[str, Any]:
         """Phase-1 diagnosis + a manual-intervention action, schema-valid with no

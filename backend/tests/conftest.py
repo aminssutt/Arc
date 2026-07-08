@@ -13,6 +13,7 @@ os.environ["VULTR_API_KEY"] = ""
 import tempfile as _tempfile
 os.environ["ARC_PUSH_MODE"] = "file"
 os.environ["ARC_PUSH_MIN_INTERVAL_S"] = "0"   # no wall-clock gating in tests
+os.environ["ARC_AUTO_RESET_S"] = "0"          # auto-reset TTL off by default; tests opt in per-case
 os.environ["ARC_DEVICE_STORE"] = os.path.join(_tempfile.mkdtemp(prefix="arc-test-dev-"), "devices.runtime.json")
 
 import pytest
