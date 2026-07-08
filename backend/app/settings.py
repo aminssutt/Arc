@@ -89,6 +89,11 @@ class Settings:
     heartbeat_s: float = field(default_factory=lambda: float(_env("ARC_HEARTBEAT_S", "15")))
     # Agent timeout → graceful `agent_completed status=timeout`, never a crash (INT.5).
     agent_timeout_s: float = field(default_factory=lambda: float(_env("ARC_AGENT_TIMEOUT_S", "120")))
+    # Auto-reset TTL: N seconds after an incident reaches a TERMINAL state the
+    # backend auto-returns to a clean idle (same effect as POST /api/demo/reset),
+    # so a visitor arriving long after a run sees a fresh state, not the replayed
+    # final report. 0 disables it. Tests force 0 (conftest) to stay inert.
+    auto_reset_s: float = field(default_factory=lambda: float(_env("ARC_AUTO_RESET_S", "600")))
     # Anti-spam push guards (INT.7): at most N pushes per incident (initial + pivot)
     # and a global minimum interval between any two pushes — a belt even if a bug
     # ever re-triggered an incident. Tests set the interval to 0.

@@ -73,12 +73,20 @@ async def inject_fault(request: Request):
             "signals_replayed": len(signals), "incident_id": incident_id, "state": orch.state}
 
 
+def reset_state(app) -> None:
+    """The single demo/auto reset (BE.11): return the system to a clean idle —
+    orchestrator, watchdog episodes, event history, idempotency cache, push
+    counters, crew bookings. Shared by POST /api/demo/reset AND the orchestrator
+    TTL auto-reset so there is ONE reset implementation, never two."""
+    app.state.orchestrator.reset()
+    app.state.watchdog.reset()
+    app.state.bus.reset()
+    app.state.push_service.reset()
+    app.state.idempotency.clear()
+    app.state.dispatch_tool.release_all()
+
+
 @router.post("/api/demo/reset")
 async def reset(request: Request):
-    request.app.state.orchestrator.reset()
-    request.app.state.watchdog.reset()
-    request.app.state.bus.reset()
-    request.app.state.push_service.reset()
-    request.app.state.idempotency.clear()
-    request.app.state.dispatch_tool.release_all()
+    reset_state(request.app)
     return {"status": "idle"}

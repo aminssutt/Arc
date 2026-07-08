@@ -20,6 +20,7 @@ from backend.app.tools import CostEngineTool, CrewDispatchTool, InventoryLookupT
 from backend.app.correlation_adapter import CorrelationAgentAdapter
 from agents.responder_matching import ResponderMatchingAgent
 
+from backend.app.api.routes_demo import reset_state
 from backend.app.remediation_adapter import RemediationAgentAdapter
 from backend.app.root_cause_adapter import RootCauseAgentAdapter
 from backend.app.validation_adapter import ValidationAgentAdapter
@@ -103,9 +104,12 @@ async def lifespan(app: FastAPI):
         except Exception as exc:  # noqa: BLE001 - retrieval then returns empty; agents degrade honestly
             logger.warning("fixture corpus ingest skipped (%s)", exc)
     orchestrator = Orchestrator(app.state.bus, app.state.seeds, registry,
-                                push, agent_timeout_s=settings.agent_timeout_s)
+                                push, agent_timeout_s=settings.agent_timeout_s,
+                                auto_reset_s=settings.auto_reset_s)
     watchdog = Watchdog(app.state.seeds, orchestrator.handle_fault, orchestrator.add_failures)
     orchestrator.on_incident_closed = watchdog.incident_closed
+    # Auto-reset TTL fires the SAME full reset as POST /api/demo/reset (no dup logic).
+    orchestrator.reset_hook = lambda: reset_state(app)
     app.state.orchestrator = orchestrator
     app.state.watchdog = watchdog
     yield
